@@ -103,7 +103,7 @@ export function Settings() {
       <header className="settings-header">
         <h2 className="editor-title">Settings</h2>
         <p className="editor-subtitle">
-          Tune how Stride feels. Changes save instantly.
+          Tune how Oryven feels. Changes save instantly.
         </p>
       </header>
 
@@ -123,7 +123,7 @@ export function Settings() {
 
         <div className="settings-pane" key={section}>
           {section === "appearance" && (
-            <Section title="Appearance" hint="Switch any time. Stride remembers.">
+            <Section title="Appearance" hint="Switch any time. Oryven remembers.">
               <Row
                 label="Theme"
                 description="Dark is easy on the eyes at night. Light works in bright rooms."
@@ -427,7 +427,7 @@ function DataSection({
     <Section title="Data" hint="Everything lives on this device.">
       <Row
         label="Storage"
-        description="Where Stride writes your tasks, projects, and labels."
+        description="Where Oryven writes your tasks, projects, and labels."
       >
         <span className="settings-static" title={loc}>
           <Database size={12} strokeWidth={2} />
@@ -485,7 +485,7 @@ function AboutSection() {
           </svg>
         </div>
         <div className="settings-about-body">
-          <div className="settings-about-name">Stride</div>
+          <div className="settings-about-name">Oryven</div>
           <div className="settings-about-blurb">
             A small, quiet task manager built to stay out of your way.
             Your tasks live only on this device, never on a server.

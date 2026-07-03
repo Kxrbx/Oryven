@@ -1,13 +1,13 @@
 [package]
-name = "stride"
-version = "0.3.7"
-description = "Stride — minimalist todo & project manager"
+name = "oryven"
+version = "0.4.0"
+description = "Oryven — minimalist todo & project manager"
 authors = ["you"]
 edition = "2021"
 rust-version = "1.77"
 
 [lib]
-name = "stride_lib"
+name = "oryven_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

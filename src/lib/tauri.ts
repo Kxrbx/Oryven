@@ -9,7 +9,7 @@ interface PersistedState {
 }
 
 const SCHEMA_VERSION = 2;
-const LS_KEY = "stride.appstate";
+const LS_KEY = "oryven.appstate";
 
 function hasTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;

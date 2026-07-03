@@ -120,7 +120,7 @@ export function Sidebar({ onOpenCommand }: SidebarProps) {
               <circle cx="8" cy="8" r="2.5" fill="var(--bg)" />
             </svg>
           </span>
-          {!collapsed && <span className="brand-label">Stride</span>}
+          {!collapsed && <span className="brand-label">Oryven</span>}
         </button>
 
         <button className="sidebar-search" onClick={onOpenCommand} title="Search (Ctrl+K)">

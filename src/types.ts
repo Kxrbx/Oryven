@@ -1,4 +1,4 @@
-// Core data model for Stride.
+// Core data model for Oryven.
 // Keep this file small and stable; the rest of the app reads it.
 
 export type ID = string;

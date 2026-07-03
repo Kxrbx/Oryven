@@ -1,6 +1,48 @@
 # Changelog
 
-All notable changes to Stride are documented here. Versions follow [Semantic Versioning](https://semver.org/).
+All notable changes to Oryven are documented here. Versions follow [Semantic Versioning](https://semver.org/).
+
+## [0.4.0] — 2026-07-04
+
+The app formerly known as Stride is now Oryven — end-to-end. This release renames the user-visible brand, the Tauri identifier, the cargo crate, the install directory, the registry entry, the binary name, the localStorage key, and the bundled seed copy. A `scripts/install-v0.4.0.ps1` orchestrator copies user data from the old path to the new one **before** uninstalling Stride, so the upgrade is invisible: tasks, projects, labels, theme, settings, and the persisted `state.json` survive the rename. There is no schema change, no Rust API change, and no React API change; the React components only see different strings.
+
+### Renamed
+- **Product brand.** `productName` `Stride` → `Oryven` in `src-tauri/tauri.conf.json`. Visible in the window title, sidebar brand label, Settings `About` panel, Settings panel subtitle ("Tune how Oryven feels…"), Data-section description ("Where Oryven writes your tasks…"), Appearance hint ("Switch any time. Oryven remembers."), HTML `<title>`, README header, the cargo crate description, the bundled Tauri `bundle.longDescription`, and the seed-data first task ("Welcome to Oryven"). `src/types.ts` document comment also updated.
+- **Tauri identifier.** `app.stride.desktop` → `app.oryven.desktop`. This is the breaking change that drives everything else: the AppUserModelID, the WebView2 secure origin, the registry uninstall key path, *and* the on-disk path Tauri resolves via `app.path().app_data_dir()` for `state.json`.
+- **Cargo crate & library.** `[package].name` `stride` → `oryven` and `[lib].name` `stride_lib` → `oryven_lib` in `src-tauri/Cargo.toml`. `src-tauri/src/main.rs` updated to call `oryven_lib::run()`. `src-tauri/Cargo.lock` rewritten accordingly.
+- **Bundle binary.** `stride.exe` → `oryven.exe` (Tauri derives the exe name from the cargo crate name). The bundled `app.stride.desktop.exe` is also replaced by `app.oryven.desktop.exe` on disk for callers that prefer the Tauri identifier form.
+- **Bundled installers.** NSIS: `Stride_0.X.Y_x64-setup.exe` → `Oryven_0.4.0_x64-setup.exe` (Tauri uses `productName` for the installer's prefix). MSI: `Stride_0.X.Y_x64_en-US.msi` → `Oryven_0.4.0_x64_en-US.msi`.
+- **npm package name.** `stride-app` → `oryven-app` in `package.json` and `package-lock.json`.
+- **localStorage fallback key.** `stride.appstate` → `oryven.appstate` in `src/lib/tauri.ts`. This is the dev-mode-only path (real users save through the Rust IPC + `state.json`), but the rename avoids stale data showing up during developer reloads.
+- **Install location.** `%LOCALAPPDATA%\Programs\Stride\` → `%LOCALAPPDATA%\Programs\Oryven\`. Tauri's NSIS installer derives the install directory from `productName`.
+- **Install scripts and verifier.** `scripts/verify-current-install.ps1` rewritten to look for `Oryven` / `app.oryven.desktop` instead of `Stride` / `app.stride.desktop`. `scripts/install-v0.4.0.ps1` is a new orchestrator that handles the migration.
+
+### State migration (run automatically by `scripts/install-v0.4.0.ps1`)
+1. Stop any running `stride.exe` / `app.stride.desktop.exe` (graceful, then force after 2 s).
+2. Locate the legacy Stride install in the registry (HKCU + HKLM, both 64-bit and WOW6432Node roots, `DisplayName` matching `^Stride(\s|$)`).
+3. Locate the legacy `state.json` at `%APPDATA%\app.stride.desktop\state.json` if present.
+4. Create `%APPDATA%\app.oryven.desktop\` and **copy** the legacy `state.json` into it. This happens *before* the uninstall so even if the legacy NSIS uninstaller purges `%APPDATA%\app.stride.desktop\`, our copy in the new location is intact.
+5. Run the legacy Stride uninstall silently (using the registry's `QuietUninstallString`, fallback `UninstallString`, fallback `<InstallDir>\Uninstall.exe /S`).
+6. POLL-verify the legacy `DisplayName=Stride` registry key is gone; log WARN if a stale entry persists but proceed (the user gets the Oryven installer either way).
+7. Run the Oryven `NSIS /S` install and **poll** `%LOCALAPPDATA%\Programs\Oryven\Uninstall.exe`'s `LastWriteTimeUtc` for three stable 500 ms samples — the canonical "install settled" signal.
+8. Run `scripts/verify-current-install.ps1` (now Oryven-aware) to confirm `DisplayVersion=0.4.0` and the binary path.
+
+### Known subtleties
+- **WebView2 secure origin changes when the identifier changes.** Tauri 2 partitions the WebView2 storage by app AUMID/identifier, so any data the frontend put in `localStorage` *before* the rename lives in a different partition than the one Oryven reads from. Real users save through the Rust `save_state` IPC + `state.json`, so this only matters for dev-mode portable testing. The fallback key was renamed as a hygiene matter; no real user data lives there.
+- **Old `Stride` registry entries can co-exist briefly with Oryven's** if the uninstaller's silent flag masked a failure. The install script logs a WARN, polls the registry, and proceeds — Oryven's installer creates a parallel entry regardless of whether the legacy one is gone.
+- **MS Edge / Teams / WebView2 caching the legacy origin.** First launch of Oryven may briefly show a "loading" state before the WebView2 partition initializes under the new identifier. This is purely cosmetic and resolves on the next launch.
+
+### Notes
+- This release is published as `Oryven_0.4.0_x64-setup.exe` and `Oryven_0.4.0_x64_en-US.msi`. Re-running the installer over an existing `0.3.x` install goes through the state-migration path described above.
+- Reinstall-via-direct-copy fallback: if `state.json` is at `%APPDATA%\app.stride.desktop\` and `%APPDATA%\app.oryven.desktop\` is empty, copy manually (no schema conversion needed — the on-disk envelope is identical between Stride v0.3.x and Oryven v0.4.0).
+- Pure rename + migration; no schema version bump; no Rust API change; no React API change. `state.json` round-trips between Stride v0.3.7 and Oryven v0.4.0 byte-for-byte.
+- **Icon set regenerated for Oryven (post-release polish).** `scripts/generate-icons.ps1` was updated alongside v0.4.0 so the next `npm run tauri:build` automatically picks up the Oryven mark on EXE resources, MSI tile, and taskbar pinned tile. The script now ships a multi-resolution `icon.ico` (PNG-in-ICO, six sizes 16/32/48/64/128/256) so Windows 11 Start Menu + multi-DPI Explorer renderers see a sharp mark at every context. Inner-hole ratio bumped from 0.26 to 0.30 so the OS mark matches the in-app brand SVG exactly. Solid colour accent unchanged so EXE/MSI/taskbar/in-app brand mark read as the *same* mark across all four surfaces. Post-regen assertion confirms all four files exist + sit within sane byte bands.
+- **Legacy install-script retirement.** `scripts/detect-stride-install.ps1` (Stride-only detector) and `scripts/uninstall-and-install-v0.2.0.ps1` (v0.2.0 one-shot orchestrator) retired once the identifier change settled. Replaced by `scripts/detect-oryven-install.ps1` (read-only Oryven detector with optional legacy-Stride presence diagnostics for migration spot-checks) and `scripts/uninstall-and-install.ps1` (version-parameterized generic orchestrator that supersedes `install-v0.4.0.ps1` for v1+).
+
+### Notes
+- This release is published as `Oryven_0.4.0_x64-setup.exe` and `Oryven_0.4.0_x64_en-US.msi`. Re-running the installer over an existing `0.3.x` install goes through the state-migration path described above.
+- Reinstall-via-direct-copy fallback: if `state.json` is at `%APPDATA%\app.stride.desktop\` and `%APPDATA%\app.oryven.desktop\` is empty, copy manually (no schema conversion needed — the on-disk envelope is identical between Stride v0.3.x and Oryven v0.4.0).
+- Pure rename + migration; no schema version bump; no Rust API change; no React API change. `state.json` round-trips between Stride v0.3.7 and Oryven v0.4.0 byte-for-byte.
 
 ## [0.3.7] — 2026-07-04
 

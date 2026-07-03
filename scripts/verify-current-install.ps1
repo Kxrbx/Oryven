@@ -1,7 +1,12 @@
-# Read-only verification of the current Stride installation on Windows.
+# Read-only verification of the current Oryven installation on Windows.
 # Robust against quoted registry values: .Trim('"') + .Replace('"', '') (STRING-typed, not [char]).
 # Pass `-TargetVersion 'x.y.z'` to override the expected version. Otherwise we
 # read it from the project's package.json, which is the single source of truth.
+#
+# NOTE: This verifier is for the *current* install. It is intentionally
+# Oryven-only. For detecting an old Stride install on a machine that's mid-
+# migration or hasn't run install-v0.4.0.ps1 yet, use scripts/detect-legacy-install.ps1
+# (a renamed alias for the historical detect-stride-install.ps1).
 
 [CmdletBinding()]
 param(
@@ -19,8 +24,8 @@ if (-not $TargetVersion) {
         $TargetVersion = $match.Groups[1].Value
         Write-Host ("[verify] TargetVersion={0} (from package.json)" -f $TargetVersion)
     } else {
-        Write-Host "WARN=no_TargetVersion_resolved_defaulting_to_0.2.1"
-        $TargetVersion = "0.2.1"
+        Write-Host "WARN=no_TargetVersion_resolved_defaulting_to_0.4.0"
+        $TargetVersion = "0.4.0"
     }
 }
 
@@ -31,7 +36,7 @@ function Get-InstallStatus {
     $candidates = Get-ChildItem -Path $RegistryRoot -ErrorAction SilentlyContinue
     foreach ($key in $candidates) {
         $reg = Get-ItemProperty -Path $key.PSPath -ErrorAction SilentlyContinue
-        if ($reg -and $reg.DisplayName -and ($reg.DisplayName -match '(?i)^stride(\s|$)')) {
+        if ($reg -and $reg.DisplayName -and ($reg.DisplayName -match '(?i)^oryven(\s|$)')) {
             return $reg
         }
     }
@@ -81,7 +86,7 @@ Write-Host ("DisplayName={0}" -f ([string]$reg.DisplayName).Trim().Trim('"'))
 Write-Host ("Publisher={0}" -f ([string]$reg.Publisher).Trim().Trim('"'))
 
 # Binary presence check (try both possible names; Tauri 2 typically uses bundle id)
-$binaryCandidates = @('app.stride.desktop.exe', 'stride.exe')
+$binaryCandidates = @('app.oryven.desktop.exe', 'oryven.exe')
 $binaryFound = $null
 if ($installLocation -and (Test-Path $installLocation)) {
     foreach ($bin in $binaryCandidates) {
@@ -97,13 +102,37 @@ if ($installLocation -and (Test-Path $installLocation)) {
 }
 
 # Any running process?
-Get-Process -Name 'stride', 'app.stride.desktop' -ErrorAction SilentlyContinue |
+Get-Process -Name 'oryven', 'app.oryven.desktop' -ErrorAction SilentlyContinue |
     ForEach-Object { Write-Host ("RUNNING_PID={0} path={1}" -f $_.Id, $_.Path) }
 
-# Verdict
-if ($displayVersion -eq $TargetVersion -and $binaryFound) {
+# Sanity: state.json at the renamed path?
+$expectedStatePath = Join-Path $env:APPDATA "app.oryven.desktop\state.json"
+$stateJsonOk = $false
+if (Test-Path $expectedStatePath) {
+    $stateFile = Get-Item $expectedStatePath
+    if ($stateFile.Length -gt 0) {
+        Write-Host ("STATE_JSON={0} size={1} mtime={2:o}" -f $expectedStatePath, $stateFile.Length, $stateFile.LastWriteTimeUtc)
+        $stateJsonOk = $true
+    } else {
+        Write-Host ("STATE_JSON_EMPTY size=0 - migration likely failed" -f $expectedStatePath)
+    }
+} else {
+    Write-Host ("STATE_JSON_MISSING expected_at={0}" -f $expectedStatePath)
+}
+
+# Verdict. A healthy install must satisfy ALL THREE:
+#   (a) registry DisplayVersion matches target,
+#   (b) the binary is on disk in the install dir,
+#   (c) state.json exists at the renamed path AND is non-empty (so the user's
+#       tasks round-tripped through the v0.3.x -> v0.4.0 state migration).
+# A missing or empty state.json is treated as a hard failure: the user would
+# land on an empty app without their seeded tasks, projects, or labels.
+if ($displayVersion -eq $TargetVersion -and $binaryFound -and $stateJsonOk) {
     Write-Host ("RESULT=installed_and_verified target={0}" -f $TargetVersion)
     exit 0
+} elseif ($displayVersion -eq $TargetVersion -and $binaryFound -and (-not $stateJsonOk)) {
+    Write-Host ("RESULT=installed_but_state_json_missing_or_empty target={0}" -f $TargetVersion)
+    exit 1
 } elseif ($displayVersion -eq $TargetVersion) {
     Write-Host ("RESULT=registered_target_version_but_binary_missing target={0}" -f $TargetVersion)
     exit 1

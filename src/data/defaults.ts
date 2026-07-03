@@ -77,7 +77,7 @@ export function makeInitialState(): AppState {
 
   const seedTasks: Array<SeedTask & { labels?: string[] }> = [
     {
-      title: "Welcome to Stride",
+      title: "Welcome to Oryven",
       description:
         "Try Ctrl+K to open the command palette, Ctrl+N to capture a quick task, drag rows to reorder. Delete me whenever you're ready.",
       dueDate: null,

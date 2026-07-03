@@ -1,0 +1,302 @@
+/* ─── TodayWidget popover ──────────────────────────────────────── *
+ * Card anchored to the right of the sidebar widget. Three bucket lists
+ * (overdue / due today / completed today) with click-through to task
+ * detail. Footer button jumps to the /today list view.
+ */
+
+.tw-popover {
+  position: fixed;
+  z-index: 200;
+  width: 340px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 24px);
+  background: var(--surface-elevated);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 12px;
+  box-shadow:
+    0 20px 48px rgba(0, 0, 0, 0.36),
+    0 2px 8px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform-origin: top left;
+  font-size: 13px;
+  color: var(--text);
+}
+
+/* Make sure the widget card signals it's "active" while the popover is
+ * open — same active-state micro-affordance as the Sidebar nav-items. */
+.today-widget.is-open {
+  background: var(--surface-active);
+  border-color: var(--hairline-strong);
+}
+
+.tw-popover-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--hairline);
+  flex-shrink: 0;
+}
+.tw-popover-title {
+  font-weight: 650;
+  font-size: 13.5px;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.tw-popover-date {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tw-popover-count {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  flex-shrink: 0;
+}
+
+/* Bucket section: header + list. Compact vertical rhythm so the three
+ * buckets share the panel without feeling cramped. */
+.tw-bucket {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 6px 4px;
+}
+.tw-bucket + .tw-bucket {
+  border-top: 1px solid var(--hairline);
+  margin-top: 2px;
+  padding-top: 8px;
+}
+
+.tw-bucket-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px 4px;
+}
+.tw-bucket-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.tw-bucket-count {
+  font-size: 10.5px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  margin-left: 2px;
+}
+
+/* Accent dot before each bucket label to give the bucket a tiny visual
+ * identity — overdue red, due today accent, completed today muted.
+ * The dot is purely decorative; full color is held by the row meta. */
+.tw-bucket-overdue .tw-bucket-label::before,
+.tw-bucket-today .tw-bucket-label::before,
+.tw-bucket-done .tw-bucket-label::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: 1px;
+}
+.tw-bucket-overdue .tw-bucket-label::before { background: var(--danger); }
+.tw-bucket-today .tw-bucket-label::before {
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+.tw-bucket-done .tw-bucket-label::before { background: var(--text-faint); }
+
+.tw-bucket-empty {
+  font-size: 12px;
+  color: var(--text-faint);
+  padding: 4px 12px;
+  font-style: italic;
+  margin: 0;
+  user-select: none;
+}
+
+.tw-bucket-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* Task row: title left, meta right. Hover/focus states match the rest
+ * of the app — subtle surface hover, focus ring on keyboard nav. */
+.tw-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-subtle);
+  font-size: 13px;
+  text-align: left;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease,
+    transform 140ms ease;
+  min-width: 0;
+}
+.tw-row:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.tw-row:active { transform: scale(0.992); }
+.tw-row:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.tw-row.is-done .tw-row-title {
+  text-decoration: line-through;
+  text-decoration-color: var(--text-faint);
+  text-decoration-thickness: 1px;
+  color: var(--text-faint);
+}
+.tw-row.is-done:hover .tw-row-title {
+  color: var(--text-muted);
+  text-decoration-color: var(--text-muted);
+}
+
+.tw-row-title {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tw-row-date {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  line-height: 1.4;
+}
+/* Overdue bucket's date chip warms up so users can spot overdue rows
+ * at a glance without doing the math. */
+.tw-bucket-overdue .tw-row-date {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-color: transparent;
+}
+.tw-row-date-today {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent);
+  font-weight: 600;
+}
+.tw-row-date-done {
+  color: var(--text-muted);
+  background: transparent;
+  border-color: transparent;
+  padding-right: 0;
+}
+
+/* Empty overall state — different from "all buckets empty"; this fires
+ * when literally zero tasks are on the user's today plan. */
+.tw-popover-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 24px 14px 18px;
+  text-align: center;
+  color: var(--text-muted);
+}
+.tw-popover-empty p {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.005em;
+}
+.tw-popover-empty span {
+  font-size: 11.5px;
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+/* Footer: "Open Today view" button. Same styling shape as primary
+ * rails in the rest of the app — accent-soft background, accent text,
+ * subtle chevron-arrow leading the eye to the right. */
+.tw-popover-foot {
+  padding: 8px 10px;
+  border-top: 1px solid var(--hairline);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+.tw-popover-viewall {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 550;
+  background: var(--accent-soft);
+  color: var(--accent);
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    transform 140ms ease;
+}
+.tw-popover-viewall:hover {
+  background: color-mix(in srgb, var(--accent-soft) 70%, var(--accent) 8%);
+  color: var(--accent);
+}
+.tw-popover-viewall:active { transform: scale(0.985); }
+.tw-popover-viewall:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.tw-popover-viewall:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* pop-in animation. Mirrors the SortPopover pulse: tiny scale + fade.
+ * Matches global .pop-in contract if defined elsewhere; if not, this
+ * rule carries the panel so it animates on mount. */
+.tw-popover.pop-in {
+  animation: tw-pop-in 160ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+@keyframes tw-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

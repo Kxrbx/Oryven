@@ -1,0 +1,560 @@
+/*
+ * Settings modal.
+ *
+ * Layout: vertical rail on the left lists sections; a scrollable pane on
+ * the right takes the remaining width. Inside the pane each section is a
+ * stack of rows. Simple controls (Theme, Switch, SegmentedControl, Static)
+ * use `.settings-row` with a label+description on the left and the control
+ * on the right. Multi-option pickers (Default sort) use `.settings-row.settings-row--picker`
+ * where the control is a vertical radio list taking the entire row width.
+ *
+ * Width is generous (~720px) since this is the one place that holds
+ * multi-section content. We re-use the .editor title/subtitle from
+ * Editor.css rather than redefining them.
+ */
+
+.settings-root {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: min(720px, 100%);
+  max-width: calc(100vw - 48px);
+}
+
+.settings-header { padding: 0 0 4px; }
+
+/* ─── Body grid: rail + pane ─────────────────────────────────────── */
+
+.settings-body {
+  display: grid;
+  grid-template-columns: 168px 1fr;
+  gap: 18px;
+  align-items: stretch;
+  min-height: 380px;
+}
+
+.settings-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  align-self: start;
+  min-width: 0;
+}
+.settings-rail-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-subtle);
+  text-align: left;
+  width: 100%;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
+}
+.settings-rail-item:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.settings-rail-item.active {
+  background: var(--accent-soft);
+  color: var(--text);
+  font-weight: 550;
+}
+.settings-rail-item:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* The pane re-mounts on every section switch (parent uses `key={section}`),
+ * which lets the section entrance animation re-run cleanly without any
+ * motion-gating on visibility — content is visible immediately, the
+ * animation only adds polish on top. */
+.settings-pane {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-right: 2px;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: settings-fade-up 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+@keyframes settings-fade-up {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.settings-section-head { display: flex; flex-direction: column; gap: 2px; }
+.settings-section-title {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 650;
+  letter-spacing: -0.005em;
+  color: var(--text);
+  text-wrap: balance;
+}
+.settings-section-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-subtle);
+  line-height: 1.45;
+}
+.settings-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ─── Row: label + description on the left, control on the right ─── */
+
+.settings-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  min-width: 0;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+.settings-row:focus-within { border-color: var(--hairline-strong); }
+
+.settings-row-text { min-width: 0; }
+.settings-row-label {
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--text);
+  letter-spacing: -0.005em;
+}
+.settings-row-desc {
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+.settings-row-control { flex-shrink: 0; }
+
+/* Row variant for full-width controls (multi-option pickers). Label and
+ * description stack on top of the control so the control gets the entire
+ * row width — no cramming into a narrow 1fr column. */
+.settings-row--picker {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.settings-row--picker .settings-row-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.settings-row--picker .settings-row-desc { margin-top: 0; }
+.settings-row--picker .settings-row-picker {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* ─── Static read-only badge ("Always on", "%APPDATA%..." etc.) ──── */
+
+.settings-static {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Segmented control (pick-one-of-N where N <= 4) ─────────────── */
+
+.settings-segmented {
+  display: inline-flex;
+  align-items: stretch;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+}
+.settings-segmented-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: -0.005em;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease;
+}
+.settings-segmented-item:hover { color: var(--text); }
+.settings-segmented-item.active {
+  background: var(--surface-elevated);
+  color: var(--text);
+  box-shadow: 0 1px 0 var(--hairline-strong);
+}
+.settings-segmented-item:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* ─── Switch (soft toggle) ───────────────────────────────────────── */
+
+.settings-switch {
+  width: 34px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--hairline-strong);
+  position: relative;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.settings-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--text-subtle);
+  transition:
+    transform 160ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    background-color 160ms ease;
+}
+.settings-switch.active { background: var(--accent); }
+.settings-switch.active .settings-switch-knob {
+  background: var(--text);
+  transform: translateX(14px);
+}
+.settings-switch:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* ─── Radio list (multi-option picker, e.g. Default sort) ────────── *
+ * Vertical list of full-width rows. Each row has a leading radio dot,
+ * a stacked label + helper hint, and a trailing check icon when active.
+ * No side-stripes (banned). Active state = accent-soft bg + accent border
+ * + filled radio dot + accent check on the right.
+ */
+.settings-radio {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.settings-radio-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 9px 11px;
+  border-radius: 9px;
+  text-align: left;
+  background: transparent;
+  min-width: 0;
+  cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease;
+  border: 1px solid transparent;
+}
+.settings-radio-item:hover {
+  background: var(--surface-hover);
+}
+.settings-radio-item.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.settings-radio-item:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-color: var(--hairline-strong);
+}
+.settings-radio-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--hairline-strong);
+  flex-shrink: 0;
+  position: relative;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease;
+}
+.settings-radio-item:hover .settings-radio-dot { border-color: var(--accent); }
+.settings-radio-item.active .settings-radio-dot {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+.settings-radio-item.active .settings-radio-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--bg);
+}
+.settings-radio-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.settings-radio-label {
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--text);
+  letter-spacing: -0.005em;
+}
+.settings-radio-item.active .settings-radio-label { color: var(--text); font-weight: 600; }
+.settings-radio-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+.settings-radio-item.active .settings-radio-hint { color: var(--text-subtle); }
+.settings-radio-check {
+  flex-shrink: 0;
+  color: var(--accent);
+  margin-left: 2px;
+}
+
+/* ─── Danger buttons ─────────────────────────────────────────────── */
+
+.settings-danger-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  color: var(--danger);
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+.settings-danger-outline:hover {
+  background: var(--danger-soft);
+  border-color: transparent;
+}
+.settings-danger-outline:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.settings-danger-solid {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  color: var(--text-inverse);
+  background: var(--danger);
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+  font-weight: 550;
+  transition: filter 140ms ease;
+}
+.settings-danger-solid:hover { filter: brightness(1.06); }
+.settings-danger-solid:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* ─── Keyboard list ──────────────────────────────────────────────── *
+ * Each row groups `Ctrl/Cmd` + `K` chips on the left and a label on the
+ * right. Chips use real <kbd> elements (semantic) with chip styling.
+ */
+.settings-keys {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.settings-key-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 9px 14px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--hairline);
+  transition: background-color 140ms ease;
+}
+.settings-key-row:last-child { border-bottom: none; }
+.settings-key-row:hover { background: var(--surface-hover); }
+.settings-key-combo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.settings-key-plus {
+  color: var(--text-faint);
+  font-size: 11px;
+  user-select: none;
+}
+.settings-kbd {
+  font-family: "Inter", sans-serif;
+  font-size: 11.5px;
+  font-weight: 500;
+  background: var(--surface-elevated);
+  border: 1px solid var(--hairline-strong);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--text-subtle);
+  line-height: 1.3;
+  font-feature-settings: "calt" 0;
+}
+.settings-key-label { color: var(--text); justify-self: end; text-align: right; }
+.settings-key-row:hover .settings-kbd {
+  color: var(--text);
+  border-color: var(--text-subtle);
+}
+
+/* ─── About ──────────────────────────────────────────────────────── */
+
+.settings-about {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 16px;
+  padding: 16px;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+}
+.settings-about-mark {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 30% 30%, var(--surface-active), transparent 70%);
+  border: 1px solid var(--hairline);
+}
+.settings-about-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.settings-about-name {
+  font-family: "Inter Tight", "Inter", sans-serif;
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  color: var(--text);
+}
+.settings-about-blurb {
+  font-size: 13px;
+  color: var(--text-subtle);
+  line-height: 1.55;
+  max-width: 460px;
+  text-wrap: pretty;
+}
+.settings-about-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.settings-pill {
+  font-size: 11px;
+  font-weight: 550;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+}
+
+/* ─── Footer ─────────────────────────────────────────────────────── */
+
+.settings-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
+  font-size: 12px;
+}
+.settings-foot-note { color: var(--text-muted); }
+.settings-foot .editor-secondary { padding: 6px 12px; }
+.settings-foot .editor-secondary:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* ─── Compact responsive: rail collapses to a horizontal scroller ── */
+
+@media (max-width: 640px) {
+  .settings-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  .settings-rail {
+    flex-direction: row;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+  .settings-rail-item { white-space: nowrap; }
+  .settings-radio-item { padding: 10px 11px; }
+  .settings-key-row {
+    grid-template-columns: auto 1fr;
+    column-gap: 14px;
+    row-gap: 4px;
+  }
+  .settings-key-label { justify-self: start; text-align: left; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-section,
+  .settings-rail-item,
+  .settings-row,
+  .settings-segmented-item,
+  .settings-switch-knob,
+  .settings-radio-item,
+  .settings-radio-dot,
+  .settings-danger-outline,
+  .settings-key-row,
+  .settings-kbd { transition: none; animation: none; }
+}

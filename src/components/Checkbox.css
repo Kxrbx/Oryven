@@ -1,0 +1,45 @@
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid var(--text-faint);
+  background: transparent;
+  flex-shrink: 0;
+  position: relative;
+}
+.checkbox[data-size="sm"] {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+.checkbox:hover {
+  border-color: var(--accent);
+  background: var(--surface-hover);
+}
+.checkbox.checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+/* Default unchecked state: the lucide Check icon is fully hidden (opacity 0,
+ * shrunk to scale(0.5)) so only the empty square border is visible. The
+ * override rule below re-shows + pops it back to scale(1) when the
+ * checkbox carries the `.checked` modifier.
+ *
+ * Previously written as `.check .check` — a structural typo that means
+ * `.check` nested inside another `.check`. No element matched, so the
+ * `opacity: 0` rule never fired and the check icon was rendered at lucide's
+ * default opacity: 1 for every checkbox, checked or not, leaving every
+ * task appearing ticked by default. */
+.checkbox .check {
+  color: var(--text-inverse);
+  opacity: 0;
+  transform: scale(0.5);
+  transition: transform 140ms ease, opacity 140ms ease;
+}
+.checkbox.checked .check {
+  opacity: 1;
+  transform: scale(1);
+}

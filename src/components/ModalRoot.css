@@ -1,0 +1,79 @@
+/* The root is rendered via React Portal into document.body, so it sits on
+ * its own stacking context and is not affected by ancestors in the .app grid. */
+.modal-root {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  pointer-events: none;
+}
+.modal-root > * {
+  pointer-events: auto;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 9, 12, 0.5);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: fade-in 180ms ease both;
+  pointer-events: auto;
+}
+
+.modal-card {
+  position: relative;
+  width: min(440px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  background: var(--surface-elevated);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 14px;
+  padding: 22px 22px 18px;
+  box-shadow:
+    0 24px 56px rgba(0, 0, 0, 0.35),
+    0 2px 4px rgba(0, 0, 0, 0.18);
+  /* Slight lift so the card reads as a true floating surface above
+   * the blurred backdrop. */
+  transform: translateZ(0);
+}
+
+/* Wider modal variant for surfaces that need real estate (Settings).
+ * Applied conditionally by ModalRoot based on the modal kind. */
+.modal-card.large {
+  /* clamp() ensures the wide card collapses on narrower viewports
+   * instead of overflowing the .modal-root padding. */
+  width: clamp(440px, 100%, 720px);
+  max-height: min(640px, calc(100vh - 48px));
+}
+
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--text-muted);
+  background: transparent;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+.modal-close:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.modal-close:focus-visible {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+/* In light theme the backdrop is darker for the same perceived depth. */
+:root[data-theme="light"] .modal-backdrop {
+  background: rgba(20, 22, 30, 0.32);
+}

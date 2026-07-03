@@ -1,0 +1,159 @@
+/*
+ * Design tokens. The "show, don't tell" philosophy translates to:
+ *   - Color is the primary signal for priority / project / label.
+ *   - Hairlines are quiet. There are no shadows.
+ *   - Typography does the heavy lifting; sizes below are deliberate, not arbitrary.
+ *   - Density is conveyed by rhythm, not borders.
+ */
+
+:root[data-theme="dark"] {
+  /* Surfaces */
+  --bg: #0F1014;
+  --surface: #15171C;
+  --surface-elevated: #1B1E25;
+  --surface-hover: #1F222A;
+  --surface-active: #252834;
+  --hairline: #262830;
+  --hairline-strong: #2E323D;
+  --selection: rgba(99, 113, 245, 0.18);
+
+  /* Text */
+  --text: #E7E8EE;
+  --text-subtle: #B5B7C2;
+  --text-muted: #797D8B;
+  --text-faint: #565965;
+  --text-inverse: #0F1014;
+
+  /* Accents (sparingly) */
+  --accent: #8B95F7;
+  --accent-hover: #9CA5FA;
+  --accent-soft: rgba(139, 149, 247, 0.18);
+  --focus-ring: 0 0 0 2px rgba(139, 149, 247, 0.45);
+
+  /* Status */
+  --danger: #F25555;
+  --danger-soft: rgba(242, 85, 85, 0.18);
+  --warn: #F2B255;
+  --ok: #5DD49E;
+
+  /* Per-color dots (used for projects, priorities, labels) */
+  --c-rose: #FF7474;
+  --c-rose-soft: rgba(255, 116, 116, 0.16);
+  --c-rose-line: rgba(255, 116, 116, 0.35);
+  --c-orange: #FF9F66;
+  --c-orange-soft: rgba(255, 159, 102, 0.16);
+  --c-orange-line: rgba(255, 159, 102, 0.35);
+  --c-amber: #F8C658;
+  --c-amber-soft: rgba(248, 198, 88, 0.16);
+  --c-amber-line: rgba(248, 198, 88, 0.35);
+  --c-green: #5DD49E;
+  --c-green-soft: rgba(93, 212, 158, 0.16);
+  --c-green-line: rgba(93, 212, 158, 0.35);
+  --c-teal: #56D3D3;
+  --c-teal-soft: rgba(86, 211, 211, 0.16);
+  --c-teal-line: rgba(86, 211, 211, 0.35);
+  --c-sky: #6FB2F7;
+  --c-sky-soft: rgba(111, 178, 247, 0.16);
+  --c-sky-line: rgba(111, 178, 247, 0.35);
+  --c-indigo: #8B95F7;
+  --c-indigo-soft: rgba(139, 149, 247, 0.16);
+  --c-indigo-line: rgba(139, 149, 247, 0.35);
+  --c-violet: #B891F5;
+  --c-violet-soft: rgba(184, 145, 245, 0.16);
+  --c-violet-line: rgba(184, 145, 245, 0.35);
+  --c-slate: #9095A3;
+  --c-slate-soft: rgba(144, 149, 163, 0.18);
+  --c-slate-line: rgba(144, 149, 163, 0.35);
+}
+
+:root[data-theme="light"] {
+  --bg: #F7F7F5;
+  --surface: #FFFFFF;
+  --surface-elevated: #FFFFFF;
+  --surface-hover: #F0F1F3;
+  --surface-active: #E6E8EE;
+  --hairline: #E2E4E8;
+  --hairline-strong: #D5D8DF;
+  --selection: rgba(60, 78, 220, 0.12);
+
+  --text: #1B1D24;
+  --text-subtle: #4B4F5A;
+  --text-muted: #6F7380;
+  --text-faint: #9CA0AC;
+  --text-inverse: #FFFFFF;
+
+  --accent: #4D5BD4;
+  --accent-hover: #3F4BCC;
+  --accent-soft: rgba(77, 91, 212, 0.12);
+  --focus-ring: 0 0 0 2px rgba(77, 91, 212, 0.35);
+
+  --danger: #DC3D3D;
+  --danger-soft: rgba(220, 61, 61, 0.12);
+  --warn: #C8861D;
+  --ok: #1D9261;
+
+  --c-rose: #DC5050;
+  --c-rose-soft: rgba(220, 80, 80, 0.12);
+  --c-rose-line: rgba(220, 80, 80, 0.32);
+  --c-orange: #E47537;
+  --c-orange-soft: rgba(228, 117, 55, 0.12);
+  --c-orange-line: rgba(228, 117, 55, 0.32);
+  --c-amber: #C89215;
+  --c-amber-soft: rgba(200, 146, 21, 0.12);
+  --c-amber-line: rgba(200, 146, 21, 0.32);
+  --c-green: #22885D;
+  --c-green-soft: rgba(34, 136, 93, 0.12);
+  --c-green-line: rgba(34, 136, 93, 0.32);
+  --c-teal: #1F8E8E;
+  --c-teal-soft: rgba(31, 142, 142, 0.12);
+  --c-teal-line: rgba(31, 142, 142, 0.32);
+  --c-sky: #377FE0;
+  --c-sky-soft: rgba(55, 127, 224, 0.12);
+  --c-sky-line: rgba(55, 127, 224, 0.32);
+  --c-indigo: #4D5BD4;
+  --c-indigo-soft: rgba(77, 91, 212, 0.12);
+  --c-indigo-line: rgba(77, 91, 212, 0.32);
+  --c-violet: #8756D8;
+  --c-violet-soft: rgba(135, 86, 216, 0.12);
+  --c-violet-line: rgba(135, 86, 216, 0.32);
+  --c-slate: #5B606E;
+  --c-slate-soft: rgba(91, 96, 110, 0.12);
+  --c-slate-line: rgba(91, 96, 110, 0.32);
+}
+
+/* Mapping: color key -> dot color / soft / line */
+:root[data-theme] {
+  --c-rose-c: var(--c-rose);
+  --c-orange-c: var(--c-orange);
+  --c-amber-c: var(--c-amber);
+  --c-green-c: var(--c-green);
+  --c-teal-c: var(--c-teal);
+  --c-sky-c: var(--c-sky);
+  --c-indigo-c: var(--c-indigo);
+  --c-violet-c: var(--c-violet);
+  --c-slate-c: var(--c-slate);
+}
+
+/* Generic utilities (per-color dot, per-color soft background). */
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.dot-rose { background: var(--c-rose); }
+.dot-orange { background: var(--c-orange); }
+.dot-amber { background: var(--c-amber); }
+.dot-green { background: var(--c-green); }
+.dot-teal { background: var(--c-teal); }
+.dot-sky { background: var(--c-sky); }
+.dot-indigo { background: var(--c-indigo); }
+.dot-violet { background: var(--c-violet); }
+.dot-slate { background: var(--c-slate); }
+
+.dot-lg { width: 10px; height: 10px; }
+.dot-sm { width: 6px; height: 6px; }
+
+/* Shadow depth is intentionally absent. Use elevation via a slightly brighter surface. */

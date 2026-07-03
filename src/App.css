@@ -1,0 +1,46 @@
+.app {
+  display: grid;
+  grid-template-columns: 256px 1fr;
+  grid-template-rows: 56px 1fr;
+  grid-template-areas:
+    "sidebar header"
+    "sidebar main";
+  height: 100vh;
+  width: 100vw;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.app[data-collapsed="true"] {
+  grid-template-columns: 64px 1fr;
+}
+
+.area-sidebar {
+  grid-area: sidebar;
+  border-right: 1px solid var(--hairline);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.area-header {
+  grid-area: header;
+  border-bottom: 1px solid var(--hairline);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  z-index: 5;
+}
+
+.area-main {
+  grid-area: main;
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+  background: var(--bg);
+  min-width: 0;
+  overflow: hidden;
+}

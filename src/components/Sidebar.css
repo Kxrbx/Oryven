@@ -1,0 +1,384 @@
+.sidebar {
+  padding: 8px 0;
+  gap: 4px;
+  /* Soft inner border on the right edge for a clean divider feel */
+  border-right: 1px solid transparent;
+}
+
+.sidebar-top {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 10px 12px;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 6px;
+  border-radius: 7px;
+  text-align: left;
+  transition: background-color 140ms ease, transform 200ms ease;
+}
+.sidebar-brand:hover {
+  background: var(--surface-hover);
+}
+.sidebar-brand:active { transform: scale(0.985); }
+.brand-mark {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+}
+.brand-label {
+  font-family: "Inter Tight", "Inter", sans-serif;
+  font-weight: 650;
+  font-size: 14.5px;
+  letter-spacing: -0.015em;
+  color: var(--text);
+}
+
+/* ─── Search trigger ─────────────────────────────────────────────
+ * Lives in the sidebar top row. Needs an explicit width and proper
+ * min-width:0 chain so the kbd never pushes the label out of frame.
+ */
+.sidebar-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 7px;
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 13px;
+  border: 1px solid var(--hairline);
+  width: 100%;
+  min-width: 0;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+}
+.sidebar-search:hover {
+  background: var(--surface-hover);
+  border-color: var(--hairline-strong);
+  color: var(--text-subtle);
+}
+.sidebar-search:active { transform: scale(0.995); }
+.search-placeholder {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.85;
+}
+.kbd {
+  font-family: "Inter", sans-serif;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: var(--surface);
+  border: 1px solid var(--hairline-strong);
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+
+/* ─── Lists ──────────────────────────────────────────────────── */
+.sidebar-views,
+.section-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.sidebar-section {
+  margin-top: 14px;
+  padding: 0 8px;
+  min-width: 0;
+}
+
+/* ─── Today widget slot ────────────────────────────────────────
+ * Sits between the search trigger and the views nav. Hosts the TodayWidget
+ * card that gives the sidebar an immediate sense of progress.
+ */
+.sidebar-today-slot {
+  padding: 6px 8px 4px;
+}
+
+.today-widget {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 160ms ease;
+}
+.today-widget:hover {
+  background: var(--surface-hover);
+  border-color: var(--hairline-strong);
+}
+.today-widget:active { transform: scale(0.985); }
+.today-widget:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.tw-nums {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  grid-template-rows: auto auto;
+  column-gap: 3px;
+  align-items: baseline;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.tw-done {
+  grid-column: 1;
+  grid-row: 1;
+  font-size: 17.5px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.tw-sep {
+  grid-column: 2;
+  grid-row: 1;
+  font-size: 14px;
+  color: var(--text-faint);
+  padding: 0 1px;
+}
+.tw-total {
+  grid-column: 3;
+  grid-row: 1;
+  font-size: 14px;
+  color: var(--text-subtle);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.tw-cap {
+  grid-column: 1 / span 3;
+  grid-row: 2;
+  font-size: 9.5px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.tw-spark {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 2px;
+  height: 28px;
+  margin-left: auto;
+}
+.tw-bar {
+  display: inline-block;
+  width: 4px;
+  border-radius: 1.5px;
+  background: var(--text-muted);
+  align-self: flex-end;
+  transition:
+    height 220ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    background-color 140ms ease,
+    opacity 140ms ease;
+}
+.tw-bar.is-today {
+  background: var(--accent);
+  width: 5px;
+}
+
+/* ─── Project marker (color tile with optional emoji) ────────────────
+ * Used inside the project nav-item. When a project has an emoji, the
+ * marker becomes a small colored tile with the emoji centered. Without
+ * an emoji, it falls back to a plain ColorDot (handled inside the
+ * component).
+ *
+ * Emoji font stack: pin platform-native color emoji so the tile reads
+ * the same on Windows, macOS, and Linux. Without this declaration, some
+ * browsers fall back to outline-only glyphs.
+ */
+.pm-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  flex-shrink: 0;
+  font-family:
+    "Apple Color Emoji",
+    "Segoe UI Emoji",
+    "Noto Color Emoji",
+    "EmojiOne Color",
+    sans-serif;
+  line-height: 1;
+  background: var(--c-rose-soft);
+  transition:
+    background-color 140ms ease,
+    box-shadow 140ms ease;
+}
+.pm-soft-rose     { background: var(--c-rose-soft); }
+.pm-soft-orange   { background: var(--c-orange-soft); }
+.pm-soft-amber    { background: var(--c-amber-soft); }
+.pm-soft-green    { background: var(--c-green-soft); }
+.pm-soft-teal     { background: var(--c-teal-soft); }
+.pm-soft-sky      { background: var(--c-sky-soft); }
+.pm-soft-indigo   { background: var(--c-indigo-soft); }
+.pm-soft-violet   { background: var(--c-violet-soft); }
+.pm-soft-slate    { background: var(--c-slate-soft); }
+
+.pm-emoji {
+  display: block;
+  user-select: none;
+  font-feature-settings: "calt" 0;
+}
+
+.nav-item.active .pm-tile {
+  /* Lift the tile slightly so the colored block "wins" against the
+   * active-row background even when the dot color is dim. */
+  box-shadow: 0 0 0 1px var(--hairline-strong);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.section-header .section-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  color: var(--text-faint);
+  transition: background-color 140ms ease, color 140ms ease;
+}
+.section-header .section-add:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.section-empty {
+  font-size: 12px;
+  color: var(--text-faint);
+  padding: 4px 10px;
+  font-style: italic;
+}
+
+/* ─── Nav items ─────────────────────────────────────────────── */
+.nav-item,
+.nav-item-label,
+.nav-item-project {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 13.5px;
+  color: var(--text-subtle);
+  width: 100%;
+  min-width: 0; /* allow ellipsis inside */
+  text-align: left;
+  background: transparent;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    transform 160ms ease;
+}
+.nav-item:hover,
+.nav-item-label:hover,
+.nav-item-project:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.nav-item:active { transform: scale(0.99); }
+.nav-item.active {
+  background: var(--surface-active);
+  color: var(--text);
+  font-weight: 550;
+}
+.nav-item .nav-label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nav-item .nav-count {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+  padding-left: 6px;
+  flex-shrink: 0;
+}
+.nav-item:hover .nav-count { color: var(--text-muted); }
+.nav-item.active .nav-count { color: var(--text-subtle); }
+
+/* ─── Footer ────────────────────────────────────────────────── */
+.sidebar-foot {
+  margin-top: auto;
+  padding: 8px 8px 10px;
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--surface);
+}
+
+.sidebar-foot-btn {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+/* ─── Collapsed state ─────────────────────────────────────── */
+.sidebar.collapsed .sidebar-foot-btn,
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+  padding: 6px 0;
+}
+.sidebar.collapsed .nav-item .nav-label,
+.sidebar.collapsed .nav-item .nav-count {
+  display: none;
+}
+.sidebar.collapsed .sidebar-views {
+  padding: 4px 6px;
+  gap: 0;
+}
+.sidebar.collapsed .sidebar-search .search-placeholder,
+.sidebar.collapsed .sidebar-search .kbd {
+  display: none;
+}
+.sidebar.collapsed .sidebar-search {
+  justify-content: center;
+  padding: 6px;
+}

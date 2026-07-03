@@ -1,0 +1,32 @@
+.color-picker {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+}
+.color-picker.compact { padding: 2px; gap: 2px; border: none; background: transparent; }
+.cp-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  position: relative;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+}
+.cp-dot:hover {
+  transform: scale(1.1);
+}
+.cp-dot.selected {
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px var(--bg) inset;
+}
+.cp-dot.selected::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: var(--dot-color, var(--accent));
+  z-index: -1;
+}

@@ -1,0 +1,770 @@
+/* TaskDetail renders via createPortal into document.body so it lives on
+ * its own stacking context. Outer wrapper (.detail-page) holds the backdrop
+ * and centers the card; .detail IS the centered card. */
+.detail-page {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  pointer-events: none;
+}
+.detail-page > .detail,
+.detail-page > .detail-backdrop { pointer-events: auto; }
+
+.detail-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 9, 12, 0.5);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: fade-in 180ms ease both;
+}
+
+:root[data-theme="light"] .detail-backdrop {
+  background: rgba(20, 22, 30, 0.32);
+}
+
+.detail {
+  position: relative;
+  width: min(740px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  background: var(--surface-elevated);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 14px;
+  padding: 14px 18px 16px;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 10px;
+  box-shadow:
+    0 24px 56px rgba(0, 0, 0, 0.35),
+    0 2px 4px rgba(0, 0, 0, 0.18);
+}
+
+/* ─── Header (spans whole card) ───────────────────────────────── */
+.detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.detail-kind {
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 650;
+}
+.detail-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  color: var(--text-muted);
+  background: transparent;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease;
+}
+.detail-close:hover { background: var(--surface-hover); color: var(--text); }
+.detail-close:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* ─── Body: 2-column grid (main + rail) ───────────────────────── */
+.detail-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 18px;
+  align-items: start;
+}
+
+/* When the viewport can't fit the rail, the body collapses back to a
+ * single column so mobile / narrow windows still read naturally. */
+@media (max-width: 640px) {
+  .detail-body {
+    grid-template-columns: 1fr;
+  }
+  .detail {
+    width: min(440px, 100%);
+  }
+}
+
+/* ─── Main column ───────────────────────────────────────────── */
+.detail-row-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.detail-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.018em;
+  color: var(--text);
+  outline: none;
+  flex: 1;
+  min-width: 0;
+  padding: 2px 0;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+.detail-title.is-done {
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+
+.detail-desc {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  border-radius: 9px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: "Inter", sans-serif;
+  resize: vertical;
+  min-height: 84px;
+  outline: none;
+  transition:
+    border-color 140ms ease,
+    box-shadow 160ms ease;
+  text-wrap: pretty;
+}
+.detail-desc::placeholder { color: var(--text-faint); }
+.detail-desc:hover { border-color: var(--hairline-strong); }
+.detail-desc:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  outline: none;
+}
+
+.detail-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 18px;
+  border-top: 1px solid var(--hairline);
+}
+.meta-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px;
+  border-bottom: 1px solid var(--hairline);
+  font-size: 13px;
+  cursor: pointer;
+  position: relative;
+  border-radius: 6px;
+  transition:
+    background-color 140ms ease,
+    box-shadow 140ms ease;
+}
+.meta-row:hover { background: var(--surface-hover); }
+.meta-row:focus-within { box-shadow: var(--focus-ring); }
+.meta-row-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: color 140ms ease;
+}
+.meta-row:hover .meta-row-icon { color: var(--text-subtle); }
+.meta-row-label {
+  font-size: 10.5px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  min-width: 64px;
+}
+.meta-row-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+  min-width: 0;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.meta-row-value.muted { color: var(--text-muted); font-style: italic; }
+.meta-row-hint {
+  margin-left: auto;
+  padding-left: 8px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.meta-row-caret {
+  margin-left: auto;
+  color: var(--text-muted);
+  opacity: 0.6;
+  flex-shrink: 0;
+  transition: transform 140ms ease, opacity 140ms ease;
+}
+.meta-row:hover .meta-row-caret { opacity: 1; transform: translateX(2px); }
+
+/* Popovers for project/labels/recurrence */
+.meta-pop {
+  position: absolute;
+  top: calc(100% - 4px);
+  left: 12px;
+  background: var(--surface-elevated);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 10px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.28);
+  z-index: 50;
+  padding: 4px;
+  min-width: 220px;
+  max-height: 280px;
+  overflow-y: auto;
+  animation: pop-in 140ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.meta-pop-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-subtle);
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease;
+}
+.meta-pop-item:hover { background: var(--surface-hover); color: var(--text); }
+.meta-pop-item:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.meta-pop-item.active { background: var(--accent-soft); color: var(--text); }
+.meta-pop-item svg { margin-left: auto; opacity: 0.7; }
+.meta-pop-empty {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+.priority-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+}
+.pp-bullet {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: transparent;
+  transition:
+    background-color 140ms ease,
+    box-shadow 140ms ease;
+}
+.pp-bullet:hover { background: var(--surface-active); }
+.pp-bullet:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: 50%;
+}
+.pp-bullet .dot {
+  opacity: 0.32;
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+.pp-bullet:hover .dot { opacity: 0.6; }
+.pp-bullet.selected .dot {
+  opacity: 1;
+  transform: scale(1.4);
+}
+.pp-bullet.selected { background: var(--bg); }
+
+.label-value-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.label-chip-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  border: 1px solid var(--hairline);
+  color: var(--text);
+  background: var(--bg);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.label-chip-inline .remove-label {
+  margin-left: 2px;
+  color: var(--text-faint);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease;
+}
+.label-chip-inline .remove-label:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.label-chip-inline .remove-label:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: 50%;
+}
+
+/* ─── Right rail ─────────────────────────────────────────────── */
+.detail-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-left: 1px solid var(--hairline);
+  padding-left: 16px;
+  min-width: 0;
+}
+@media (max-width: 640px) {
+  .detail-rail {
+    border-left: none;
+    border-top: 1px solid var(--hairline);
+    padding-left: 0;
+    padding-top: 14px;
+  }
+}
+
+.rail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.rail-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  margin: 0 0 4px;
+}
+.rail-section-meta {
+  margin-left: auto;
+  font-size: 10.5px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Subtask list (moved into the rail) */
+.subtask-list {
+  list-style: none;
+  margin: 0 0 4px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.subtask {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: 6px;
+  transition:
+    background-color 140ms ease,
+    box-shadow 140ms ease;
+}
+.subtask:hover { background: var(--surface-hover); }
+.subtask:focus-within { box-shadow: var(--focus-ring); }
+.subtask.is-done .subtask-input {
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+.subtask-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 13px;
+  color: var(--text);
+  padding: 4px 0;
+  min-width: 0;
+}
+.subtask-input:focus-visible {
+  background: var(--bg);
+  border-radius: 4px;
+  padding: 4px 6px;
+  outline: none;
+}
+.subtask-del {
+  color: var(--text-faint);
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  opacity: 0;
+  flex-shrink: 0;
+  transition:
+    opacity 140ms ease,
+    background-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease;
+}
+.subtask:hover .subtask-del { opacity: 1; }
+.subtask-del:hover { background: var(--danger-soft); color: var(--danger); }
+.subtask-del:focus-visible {
+  opacity: 1;
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: 4px;
+}
+
+.subtask-add {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 4px;
+  border-radius: 6px;
+  color: var(--text-muted);
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease;
+}
+.subtask-add:hover { background: var(--surface-hover); color: var(--text-subtle); }
+.subtask-add:focus-within { box-shadow: var(--focus-ring); }
+.subtask-add-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 12.5px;
+  color: var(--text);
+  padding: 4px 0;
+  min-width: 0;
+}
+
+/* Activity list — small single-row entries that show key lifecycle
+ * beats of the task. Compact 2-line column to fit a 240px rail. */
+.activity-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.activity-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 5px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  transition: background-color 140ms ease;
+}
+.activity-row:hover { background: var(--surface-hover); }
+.activity-icon {
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+.activity-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  margin-left: 2px;
+  margin-right: 3px;
+  flex-shrink: 0;
+}
+.activity-label {
+  flex: 1;
+  min-width: 0;
+}
+.activity-time {
+  font-size: 11px;
+  color: var(--text-subtle);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* Comments stub */
+.rail-stub-text {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.45;
+  font-style: italic;
+}
+
+/* Comments list — each comment rendered as its own row with a thin
+ * soft-tint background to read as a contained note. Save-state toolbar
+ * revealed inline while editing. Delete + edit affordances round the
+ * 22px hit-target to match the rest of the rail. */
+.comment-list {
+  list-style: none;
+  margin: 0 0 6px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.comment-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 9px;
+  border-radius: 7px;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease;
+  min-width: 0;
+}
+.comment-item:hover { border-color: var(--hairline-strong); }
+.comment-item:focus-within { box-shadow: var(--focus-ring); border-color: var(--accent); }
+.comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.comment-time {
+  font-variant-numeric: tabular-nums;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.comment-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  flex-shrink: 0;
+  transition: opacity 140ms ease;
+}
+.comment-item:hover .comment-actions,
+.comment-item:focus-within .comment-actions { opacity: 1; }
+.comment-action {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: var(--text-muted);
+  background: transparent;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease;
+}
+.comment-action:hover { background: var(--surface-hover); color: var(--text); }
+.comment-action:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.comment-action-danger:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.comment-body {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  /* Multi-line entries should read as natural paragraphs, not as a
+   * clipped single-line chip. text-wrap: pretty keeps mid-word wraps
+   * from breaking Markdown-style line breaks. */
+  text-wrap: pretty;
+}
+.comment-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.comment-edit-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.comment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 9px;
+  border-radius: 7px;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  margin-top: 4px;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+  min-width: 0;
+}
+.comment-form:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.comment-textarea {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: "Inter", sans-serif;
+  font-size: 12.5px;
+  color: var(--text);
+  resize: vertical;
+  min-height: 38px;
+  line-height: 1.45;
+  text-wrap: pretty;
+  padding: 0;
+  margin: 0;
+}
+.comment-textarea::placeholder {
+  color: var(--text-faint);
+}
+.comment-form-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.comment-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10.5px;
+  color: var(--text-faint);
+  font-feature-settings: "calt" 0;
+}
+.comment-hint .kbd {
+  font-family: "Inter", sans-serif;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: var(--surface-elevated);
+  border: 1px solid var(--hairline-strong);
+  padding: 1px 4px;
+  border-radius: 3px;
+  color: var(--text-muted);
+  line-height: 1.3;
+  user-select: none;
+}
+.comment-cancel {
+  padding: 4px 8px;
+  border-radius: 5px;
+  font-size: 11.5px;
+  color: var(--text-subtle);
+  background: transparent;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease;
+}
+.comment-cancel:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.comment-cancel:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.comment-save {
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-size: 11.5px;
+  font-weight: 500;
+  background: var(--accent);
+  color: var(--text-inverse);
+  transition:
+    background-color 140ms ease,
+    box-shadow 140ms ease,
+    opacity 140ms ease;
+}
+.comment-save:hover { background: var(--accent-hover); }
+.comment-save:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.comment-save:disabled {
+  background: var(--surface-active);
+  color: var(--text-faint);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* ─── Footer (spans whole card) ──────────────────────────────── */
+.detail-foot {
+  padding-top: 10px;
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.detail-time {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.detail-del {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: var(--danger);
+  font-size: 12.5px;
+  background: transparent;
+  transition:
+    background-color 140ms ease,
+    box-shadow 140ms ease;
+}
+.detail-del:hover { background: var(--danger-soft); }
+.detail-del:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Fallback dot used in priority picker when color is null */
+.dot-fallback {
+  background: var(--text-faint);
+  width: 6px;
+  height: 6px;
+}

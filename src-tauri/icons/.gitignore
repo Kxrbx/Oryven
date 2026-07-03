@@ -1,0 +1,19 @@
+# The 4 files below are the only ones Tauri's Windows NSIS/MSI bundling
+# actually reads (referenced by src-tauri/tauri.conf.json's `bundle.icon`
+# list). Every other file `npx tauri icon` produces is a free byproduct for
+# macOS / iOS / Android / Windows Appx packaging that this Windows-only
+# project never bundles. Whitelist the 4 + .gitignore and ignore everything
+# else so a future regen does not bloat the working tree.
+
+# Ignore every non-dot-prefixed file in this directory by default.
+*
+# Re-include the 4 icons tauri.conf.json names verbatim.
+!32x32.png
+!128x128.png
+!128x128@2x.png
+!icon.ico
+# Defensive re-include: the leading `*` would otherwise match .gitignore's
+# basename since `.` is a non-`/` character. (.gitignore files are special-
+# cased by git and tracked regardless, but this line keeps the basename
+# re-inclusion explicit so the contract reads top-to-bottom.)
+!.gitignore

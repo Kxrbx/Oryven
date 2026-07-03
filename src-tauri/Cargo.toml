@@ -1,6 +1,6 @@
 [package]
 name = "oryven"
-version = "0.4.0"
+version = "0.4.2"
 description = "Oryven — minimalist todo & project manager"
 authors = ["you"]
 edition = "2021"

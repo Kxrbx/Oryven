@@ -145,6 +145,36 @@ if (-not $FreshInstall) {
     }
 }
 
+# ---- 4.5 PRESERVE state.json BEFORE uninstalling -----------------------------
+# Tauri's NSIS uninstaller purges %APPDATA%\<identifier>\ on uninstall by
+# default. We snapshot the current v1+ state.json to a TEMP backup so the
+# restore step (7.5 below) can put it back after the install settles. Guarded
+# by all the no-uninstall paths (FreshInstall / SkipUninstall / no-prior /
+# idempotent no-op early-exit) so we don't accumulate stale TEMP backups for
+# nothing. Atomic copy (.tmp + Move-Item -Force) mirrors lib.rs::save_state.
+$stateBackup = $null
+if (-not $FreshInstall -and -not $SkipUninstall -and $prior) {
+    $uninstallWillRun = ($priorUninstallCmd -and $priorUninstallCmd.Trim() -ne '') -or ($priorInstallDir -and (Test-Path $priorInstallDir))
+    if ($uninstallWillRun) {
+        $currentStatePath = Join-Path $env:APPDATA "app.oryven.desktop\state.json"
+        if (Test-Path $currentStatePath) {
+            $timestamp = (Get-Date).ToString("yyyyMMdd_HHmmss")
+            $stateBackup = Join-Path $env:TEMP "oryven-state-backup-preserved-$timestamp.json"
+            try {
+                $tmpPath = "$stateBackup.tmp"
+                Copy-Item -Path $currentStatePath -Destination $tmpPath -Force
+                Move-Item -Path $tmpPath -Destination $stateBackup -Force
+                Write-Step ("STATE_BACKED_UP_PRE_INSTALL={0} size={1}" -f $stateBackup, (Get-Item $stateBackup).Length)
+            } catch {
+                Write-Step ("WARN state_backup_failed err={0}" -f $_.Exception.Message)
+                $stateBackup = $null
+            }
+        } else {
+            Write-Step ("NO_PRIOR_STATE_AT={0}" -f $currentStatePath)
+        }
+    }
+}
+
 # ---- 5. Uninstall prior (unless -SkipUninstall or -FreshInstall) -------------
 if (-not $FreshInstall -and -not $SkipUninstall) {
     if ($prior -and $priorUninstallCmd -and $priorUninstallCmd.Trim() -ne '') {
@@ -198,6 +228,41 @@ if (-not (Wait-ForInstallCompletion -InstallDir $newInstallDir -TimeoutSec 60)) 
 # Settle window: NSIS writes registry last, give the OS a moment.
 Write-Step "WAIT_3S_FOR_REGISTRY_SETTLE"
 Start-Sleep -Seconds 3
+
+# ---- 7.5 RESTORE state.json AFTER install settlement -------------------------
+# Counterpart to step 4.5. If the NSIS uninstall just purged
+# %APPDATA%\app.oryven.desktop\ and the new install didn't recreate it with
+# a matching-size state.json, copy our pre-uninstall snapshot back. If the
+# install already wrote a state.json with the same size as the backup,
+# nothing on disk changed - skip to avoid an unnecessary write.
+if ($stateBackup -and (Test-Path $stateBackup)) {
+    $backupSize = (Get-Item $stateBackup).Length
+    if ($backupSize -gt 0) {
+        $targetStateRoot = Join-Path $env:APPDATA "app.oryven.desktop"
+        $targetStatePath = Join-Path $targetStateRoot "state.json"
+        $shouldRestore = $true
+        if (Test-Path $targetStatePath) {
+            $currentSize = (Get-Item $targetStatePath).Length
+            if ($currentSize -eq $backupSize) {
+                Write-Step ("STATE_PRESERVED_PAST_INSTALL size={0} backup_matches_installed_state" -f $backupSize)
+                $shouldRestore = $false
+            }
+        }
+        if ($shouldRestore) {
+            if (-not (Test-Path $targetStateRoot)) {
+                New-Item -ItemType Directory -Force -Path $targetStateRoot | Out-Null
+            }
+            try {
+                $tmpPath = "$targetStatePath.tmp"
+                Copy-Item -Path $stateBackup -Destination $tmpPath -Force
+                Move-Item -Path $tmpPath -Destination $targetStatePath -Force
+                Write-Step ("STATE_RESTORED from={0} size={1}" -f $stateBackup, $backupSize)
+            } catch {
+                Write-Step ("WARN state_restore_failed err={0}" -f $_.Exception.Message)
+            }
+        }
+    }
+}
 
 # ---- 8. Verify (unless -NoVerify) ---------------------------------------------
 if (-not $NoVerify) {

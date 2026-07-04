@@ -2,6 +2,119 @@
 
 All notable changes to Oryven are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.5.7] - 2026-07-04
+
+Patch release that hardens the recurring-task logic on top of the v0.5.4 baseline. Ticking a repeating task now always spawns the next occurrence (even when the original has no due date), changing a task's due date re-derives any day-of-month dependencies, and un-ticking a repeating task cleans up its auto-spawned next instance — while preserving user edits so an unintentional click is fully reversible.
+
+### Changed
+- **Recurring tasks without a due date no longer silently die.** Ticking a "Every day" / "Every week" / "Every month" reminder that was created without a specific date now anchors the next step to today, so the repeating pattern continues instead of completing the task and leaving no successor. The v0.5.4 floor-on-today behavior is preserved — overdue instances still skip missed occurrences — by threading a `baseDate` option through `nextOccurrence()` and falling back cleanly when the task itself has no anchor date.
+- **Monthly `dayOfMonth` follows the date.** Editing the due date of a recurring `{kind: "monthly"}` task (with or without explicit `dayOfMonth`) now re-normalizes the recurrence rule through `normalizeTaskPatch`. The patch path fires when *either* `recurrence` *or* `dueDate` is in the update, so the monthly step and the current date stay phase-locked and a Jan 31 task pushed to Feb keeps clamping correctly.
+- **Un-ticking a recurring task cleans up its auto-spawned next instance.** Toggling a task from completed back to open drops the *direct* child that `toggleTask` previously spawned, but only when that child still matches what auto-spawn would have produced. The new `isPristineAutoSpawn(child, parent)` helper compares title / description / priority / project id / labels / subtasks count / comments count *and* requires `child.dueDate === nextOccurrence(parent)`. Any user edit — including rescheduling the auto-spawned child — preserves it, so un-ticking never silently discards work.
+- **`isSameRecurringLine` simplifies to a single series-id check.** The previous five-branch comparison (matching `id` / `parentRecurrenceId` / `recurrenceId` against the active task and the series id) collapsed to one line: `recurrenceSeriesId(candidate) === seriesId`. `recurrenceSeriesId` already resolves every member of a chain back to the original task's id via `recurrenceId ?? parentRecurrenceId ?? id`, so the simplification is equivalent and easier to reason about.
+
+### Notes
+- Pure logic tightening; no schema version bump; no Rust API change; no React API change. `state.json` round-trips through the v0.5.6 → v0.5.7 binary cleanly. Series ids (`recurrenceId`) and the parent lineage (`parentRecurrenceId`) are unchanged, so existing chain membership is preserved across the upgrade — tasks migrated under the v0.5.4 `recurrenceId ?? parentRecurrenceId ?? id` fallback load unchanged.
+- This release is published as `Oryven_0.5.7_x64-setup.exe` and `Oryven_0.5.7_x64_en-US.msi`. Tauri Windows registry `DisplayVersion` updates to `0.5.7` post-install.
+
+## [0.5.6] - 2026-07-04
+
+Patch release focused on data safety, local-first security, and repo quality.
+
+### Changed
+- **Saved empty task lists now restore correctly.** Oryven no longer treats a valid saved state with zero tasks as a first launch, so projects, labels, settings, theme, and layout survive after all tasks are cleared.
+- **Delete confirmation is enforced.** The `confirmBeforeDelete` setting now protects task deletion from both the task detail panel and the keyboard shortcut path.
+- **Date logic uses local calendar days consistently.** Header, Sidebar, QuickAdd, and list grouping now share local-date helpers instead of UTC string slices, preventing around-midnight counter drift.
+- **Invalid manual dates are rejected.** Strict `YYYY-MM-DD` parsing now rejects impossible dates instead of accepting `NaN-NaN-NaN`.
+- **Tauri security is tightened.** The app now ships with an explicit CSP, removes remote Google Fonts, drops the unused dialog plugin, and narrows the default capability to `core:default`.
+- **Dependency and quality checks updated.** Vite and the React plugin are upgraded, dev audit findings are cleared, and `npm run check` now runs typecheck, production build, and production audit.
+- Release artifacts are expected as `Oryven_0.5.6_x64-setup.exe` and `Oryven_0.5.6_x64_en-US.msi`; the Tauri Windows registry `DisplayVersion` should update to `0.5.6` post-install.
+
+## [0.5.5] - 2026-07-04
+
+Patch release that corrects the Windows app icon crop.
+
+### Changed
+- **Desktop icon width fixed.** The Oryven mark is horizontally recropped so the visible logo fills the icon canvas instead of leaving wide invisible margins on the left and right.
+- **Windows icon bundle regenerated.** Tauri PNG/ICO assets were regenerated from the corrected source logo and embedded into the rebuilt installer.
+- This release is published as `Oryven_0.5.5_x64-setup.exe` and `Oryven_0.5.5_x64_en-US.msi`. Tauri Windows registry `DisplayVersion` updates to `0.5.5` post-install.
+
+## [0.5.4] - 2026-07-04
+
+Patch release that hardens repeating tasks.
+
+### Changed
+- **Recurring dates are now clamped correctly.** Monthly repeats handle end-of-month dates like January 31 without overflowing into March, and yearly repeats handle leap-day tasks by landing on February 28 in non-leap years.
+- **Overdue repeats skip missed occurrences.** Completing an overdue repeating task creates the next actionable future instance instead of immediately recreating another overdue task.
+- **Repeating series now have stable lineage.** New and migrated recurring tasks share a `recurrenceId`, so repeated complete/uncomplete cycles do not create duplicate future instances.
+- **Future instances are cleaner.** Spawned occurrences keep task metadata, labels, priority, project and recurrence, but reset completion state and subtask checks, and start with fresh comments.
+- **Persisted state migration added.** Existing `state.json` files without `recurrenceId` load safely and are normalized on the next save.
+- This release is published as `Oryven_0.5.4_x64-setup.exe` and `Oryven_0.5.4_x64_en-US.msi`. Tauri Windows registry `DisplayVersion` updates to `0.5.4` post-install.
+
+## [0.5.3] — 2026-07-04
+
+Patch release that fixes horizontal Kanban navigation and refreshes desktop icon handling.
+
+### Changed
+- **Kanban board is now grabbable.** Dragging the empty board/column surface pans horizontally when the columns overflow, while task dragging stays isolated to the card drag handle.
+- **Kanban horizontal scrollbar remains usable.** The board reserves space above the bottom QuickAdd overlay so the scrollbar is not covered.
+- **Desktop icon investigation.** The desktop shortcut points to the installed `oryven.exe` icon resource; the currently displayed mark is the icon embedded in the installed EXE, not an old shortcut target.
+- This release is published as `Oryven_0.5.3_x64-setup.exe` and `Oryven_0.5.3_x64_en-US.msi`. Tauri Windows registry `DisplayVersion` updates to `0.5.3` post-install.
+
+## [0.5.2] — 2026-07-04
+
+Patch release focused on the Kanban and Calendar views after an Impeccable product-UI audit.
+
+### Changed
+- **Kanban interaction model tightened.** Cards now separate opening, dragging, and completion controls instead of mixing all actions into one draggable surface. Empty project columns stay visible so tasks can be dropped into any project lane.
+- **Calendar keyboard support added.** Month grid cells now support roving focus with arrow keys, Home/End, PageUp/PageDown, and Enter/Space to open the first task on the focused day.
+- **Calendar and Kanban accessibility pass.** Added clearer ARIA labels, focus states, and non-nested interactive controls for task chips/cards.
+- **View styling polished.** Denser Kanban cards, clearer empty drop lanes, sticky Calendar day headers, stable cell sizing, and better narrow-width overflow behavior.
+- This release is published as `Oryven_0.5.2_x64-setup.exe` and `Oryven_0.5.2_x64_en-US.msi`. Tauri Windows registry `DisplayVersion` updates to `0.5.2` post-install.
+
+## [0.5.1] — 2026-07-04
+
+Patch release that tightens the Oryven brand mark across the app and Windows surfaces. The canonical `assets/Oryven logo.svg` now uses a cropped viewBox around the actual logo geometry, removing the excess transparent margin from the previous icon render. The same recropped SVG is used for the WebView2 favicon and the in-app Sidebar mark, and the Windows PNG/ICO bundle assets are regenerated from it.
+
+### Changed
+- **Logo source recropped.** `assets/Oryven logo.svg` now uses `viewBox="-260.98 -226.92 1061.78 1061.78"` so the mark fills the icon canvas much more tightly without distorting the paths.
+- **In-app brand mark updated.** The Sidebar inline SVG uses the same viewBox as the canonical asset.
+- **Windows icon assets regenerated.** `src-tauri/icons/{32x32.png,128x128.png,128x128@2x.png,icon.ico}` were regenerated from the recropped SVG so the EXE, installer, taskbar, Start Menu, and MSI/NSIS surfaces all share the updated mark.
+- This release is published as `Oryven_0.5.1_x64-setup.exe` and `Oryven_0.5.1_x64_en-US.msi`. Tauri Windows registry `DisplayVersion` updates to `0.5.1` post-install.
+
+## [0.5.0] — 2026-07-04
+
+The same database, four different lenses. This release adds a multi-view system to Oryven: every persisted task is now renderable as **List, Kanban, Calendar,** or **Table** without duplicating the underlying data. The previous List layout is preserved verbatim as the first view mode; the three new layouts join it. A new `viewMode` field in the persisted state remembers the user's preferred layout across launches. The existing filter surface (Inbox / Today / Upcoming / All / Completed / project / label / search) is orthogonal — every view mode renders the same filtered set of tasks through its own lens.
+
+### Added
+- **ViewMode type and `viewMode` state.** New `"list" | "kanban" | "calendar" | "table"` union exported from `@/types`. `viewMode` lives in `AppState` with a `DEFAULT_VIEW_MODE = "list"` initial value. `setViewMode(mode)` action is a pure setter — it intentionally does NOT close the detail panel, so users can re-render the same filter in a different layout without losing context.
+- **ViewModeSwitcher segmented control.** Four icon-only buttons in the Header, one per view mode. Active mode is highlighted with the accent; tooltip on hover shows the layout name plus the `Ctrl/Cmd Alt <digit>` shortcut. The segmented control is `role="radiogroup"` with each button `role="radio" aria-checked` so screen readers announce the current layout and the option list correctly.
+- **Four view components under `src/components/views/`**, all driven by the same `filterTasksForView` helper so they never disagree on what "the current filter" contains:
+  - **List** (the original `TaskList`): the only view with full @dnd-kit/sortable drag-to-reorder within day-groups; the others are read-mostly (Kanban lets you move between columns).
+  - **Kanban**: one column per project plus an "Inbox" column for tasks without a project. Drag a card across columns to change its `projectId` via the store's `moveTask` action. A `DragOverlay` renders a tilted preview card while dragging.
+  - **Calendar**: 6-week month grid (Monday-start, locale-aware). Today is highlighted with an accent-soft fill + accent ring. Click a day cell to focus it. Tasks without a due date surface in a "No date" strip at the top. Month nav (← / →) + a "Today" snap button.
+  - **Table**: compact, sortable grid with seven columns (✓ / Title / Project / Labels / Due / Priority / Status). Click any column header to toggle sort; null values (no project, no due date) sort to the end regardless of direction.
+- **Shared `filterTasksForView` helper in `src/utils/viewFilter.ts`.** The filter / sort logic that used to live as a private function inside `TaskList.tsx` is now exported. All four views import the same function so they show bit-identical task sets. `bucketByProject` rides along for the Kanban columns.
+- **Keyboard shortcuts `Ctrl/Cmd Alt 1..4`.** Switch view modes by number. Documented in Settings → Keyboard under a "View layouts" divider so the layout switchers read as their own grouping. The shortcuts avoid `Ctrl/Cmd 1..5` (browser tab switching) and `Ctrl/Cmd Shift 1` (extension collisions) by sitting on the Alt plane.
+- **ViewModeSwitcher keyboard shortcut resolver `viewModeForHotkey(n)`** in `src/components/ViewModeSwitcher.tsx` — statically exhaustive for 1..4, returns `null` for any out-of-range digit. App.tsx registers each combo explicitly (no loop) so the shortcut engine has a static handler table; the lookup is guaranteed to find a match in `VIEW_MODE_DEFS` for every registered digit, so the call sites use a non-null assertion rather than a defensive `?? viewMode` fallback.
+
+### Schema
+- **`PersistedAppState.viewMode?: ViewMode` (additive, optional).** Existing `state.json` files load unchanged — the field is `undefined` until first save after the upgrade, and the store's `DEFAULT_VIEW_MODE = "list"` covers that case. **The on-disk envelope gains one optional field; no version bump required** because the new field is purely additive and the load path is forward-compatible.
+- **`ViewMode` union exported from `src/types.ts`** alongside `VIEW_MODES: ViewMode[]` and `DEFAULT_VIEW_MODE: ViewMode` so the rest of the app can iterate and reference them without re-declaring literals.
+- **Forward-compatible state load.** `loadState()` in `src/lib/tauri.ts` runs every loaded state through a `normalizePersistedState` helper that coerces unknown `viewMode` values (e.g. a state file written by an earlier build that shipped a now-removed view) to `undefined`, so the active button in the switcher always highlights and the dispatcher never falls through to a stale branch. Old state files round-trip through the new binary cleanly.
+
+### Changed
+- **`TaskList.tsx` refactored to consume the shared `filterTasksForView`.** The private `filterForView` function is gone. The group-by-day math for Today / Upcoming views and the dnd-kit reorder handlers stay local to `TaskList` because no other view needs them.
+- **Header gains a `ViewModeSwitcher` cell** to the left of the New Task button. Compact segmented control: 30×28px per button, 2px gutter, hairline border, hover surfaces to `var(--surface-hover)`, active surfaces to `var(--surface-active)` with an accent color + 1px hairline-strong halo. Tooltip on each button shows the layout name + the corresponding `Ctrl/Cmd Alt <digit>` shortcut.
+- **App.tsx gains a `ViewDispatcher`** that switches on `viewMode` and renders the matching view component. The `viewMode` state is persisted in the same debounced save call as the rest of the persisted state, so the user's preferred layout survives restarts.
+- **Settings → Keyboard list** documents the four view-mode shortcuts under a small "View layouts" divider that visually separates them from the navigation / task-selection chords above.
+
+### Notes
+- **No new icons added to the icon set.** Each view's icon is rendered from `lucide-react` (`List`, `LayoutGrid`, `CalendarDays`, `Table2`) and rendered as an inline SVG at 15px. The Tauri bundle binaries (NSIS + MSI) keep the canonical `assets/Oryven logo.svg` mark on every surface.
+- **QuickAdd placement.** The bottom-of-pane QuickAdd input renders inside every view's wrap, so `Ctrl/Cmd N` jumps focus into the same input regardless of which layout the user is on. The new-task input is the only affordance that crosses view boundaries — every other view-specific affordance (drag-to-move on Kanban, click-to-open chips on Calendar, click-to-open rows on Table) is a per-view interaction.
+- **Cross-view consistency guarantee.** Because all four views call `filterTasksForView(view, tasks, projects, labels, sortMode)` with the same arguments, the user's counts (inbox, today, upcoming, all, completed) stay identical as they flip through view modes. The Header counter — the only "live" count that depends on the filter — is unaffected by view mode and continues to show the same `X tasks` string in every layout.
+- **Pure additive feature.** No Rust API change. No React API change beyond the new exports. No removal of any prior capability. `state.json` round-trips through `0.4.2 → 0.5.0` unchanged; new installs read the optional `viewMode` field as `undefined` and the store fills in `DEFAULT_VIEW_MODE = "list"` lazily.
+- This release is published as `Oryven_0.5.0_x64-setup.exe` and `Oryven_0.5.0_x64_en-US.msi`. Tauri Windows registry `DisplayVersion` updates to `0.5.0` post-install.
+
 ## [0.4.2] — 2026-07-04
 
 Patch release that ships the `scripts/uninstall-and-install.ps1` state-preservation fix from the v0.4.1 post-release hotfix as a real downgrade-safe artifact. v0.4.1 installers bundled before the fix could wipe `%APPDATA%\app.oryven.desktop\state.json` during in-place upgrades because the v1+ orchestrator skipped the pre-uninstall snapshot that the working `scripts/install-v0.4.0.ps1` reference had. Verified end-to-end on this host: a 0.4.1 → 0.4.2 in-place upgrade walked uninstall → install → restore without any data loss; the post-install `state.json` was byte-identical to the pre-install snapshot.

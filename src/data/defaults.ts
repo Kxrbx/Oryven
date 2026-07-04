@@ -9,7 +9,15 @@ interface SeedTask
   extends Partial<
     Omit<
       Task,
-      "id" | "createdAt" | "completedAt" | "labelIds" | "subtasks" | "recurrence" | "order" | "parentRecurrenceId"
+      | "id"
+      | "createdAt"
+      | "completedAt"
+      | "labelIds"
+      | "subtasks"
+      | "recurrence"
+      | "recurrenceId"
+      | "order"
+      | "parentRecurrenceId"
     >
   > {
   title: string;
@@ -41,6 +49,7 @@ function makeTask(t: SeedTask & { labels?: string[] }, index: number): Task {
     labelIds: t.labels ?? [],
     subtasks: [],
     recurrence: null,
+    recurrenceId: null,
     parentRecurrenceId: null,
     order: 1000 * (10 - index),
     createdAt: new Date().toISOString(),

@@ -1,3 +1,8 @@
+// The classic "list" layout. The filter/sort logic was extracted to
+// `@/utils/viewFilter.ts` so the other view components (Kanban,
+// Calendar, Timeline, Table, Mindmap) all share the same definition
+// of "what tasks belong to the current filter, in what order."
+
 import { useEffect, useMemo, useRef } from "react";
 import {
   DndContext,
@@ -20,6 +25,9 @@ import { TaskRow } from "./TaskRow";
 import { QuickAdd } from "./QuickAdd";
 import { EmptyState } from "./EmptyState";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { filterTasksForView } from "@/utils/viewFilter";
+import { addDays, todayYMD } from "@/utils/dates";
+import { modKey } from "@/utils/keyboard";
 import "./TaskList.css";
 
 interface TaskListProps {
@@ -42,7 +50,7 @@ export function TaskList({ onOpenDetail }: TaskListProps) {
   const reorderTasksByDate = useStore((s) => s.reorderTasksByDate);
 
   const filtered = useMemo(
-    () => filterForView(view, tasks, projects, labels, sortMode),
+    () => filterTasksForView(view, tasks, projects, labels, sortMode),
     [view, tasks, projects, labels, sortMode]
   );
 
@@ -94,9 +102,18 @@ export function TaskList({ onOpenDetail }: TaskListProps) {
       const sel = useStore.getState().selectedTaskId;
       if (sel) onOpenDetail(sel);
     },
-    "ctrl+backspace": () => {
-      const sel = useStore.getState().selectedTaskId;
-      if (sel) useStore.getState().deleteTask(sel);
+    [`${modKey()}+backspace`]: () => {
+      const s = useStore.getState();
+      const sel = s.selectedTaskId;
+      if (!sel) return;
+      const task = s.tasks.find((t) => t.id === sel);
+      if (
+        s.settings.confirmBeforeDelete &&
+        !window.confirm(`Delete "${task?.title ?? "selected task"}"?`)
+      ) {
+        return;
+      }
+      s.deleteTask(sel);
     },
   });
 
@@ -160,83 +177,6 @@ export function TaskList({ onOpenDetail }: TaskListProps) {
   );
 }
 
-function filterForView(
-  view: View,
-  tasks: Task[],
-  projects: any[],
-  labels: any[],
-  sortMode: "smart" | "due" | "alpha" | "manual"
-): Task[] {
-  const today = new Date().toISOString().slice(0, 10);
-  const in7Days = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
-  const open = (t: Task) => !t.completed;
-  let pool: Task[];
-  switch (view.kind) {
-    case "inbox":
-      pool = tasks.filter((t) => open(t) && !t.projectId);
-      break;
-    case "today":
-      pool = tasks.filter(
-        (t) => open(t) && t.dueDate !== null && t.dueDate <= today
-      );
-      break;
-    case "upcoming":
-      pool = tasks.filter(
-        (t) =>
-          open(t) && t.dueDate !== null && t.dueDate > today && t.dueDate <= in7Days
-      );
-      break;
-    case "all":
-      pool = tasks.filter(open);
-      break;
-    case "completed":
-      pool = tasks.filter((t) => t.completed);
-      break;
-    case "project":
-      pool = tasks.filter((t) => open(t) && t.projectId === view.id);
-      break;
-    case "label":
-      pool = tasks.filter((t) => open(t) && t.labelIds.includes(view.id));
-      break;
-    case "search":
-      pool = tasks.filter((t) => matchQuery(t, view.query));
-      break;
-  }
-  if (view.kind === "completed") {
-    return pool.sort((a, b) => (b.completedAt ?? "").localeCompare(a.completedAt ?? ""));
-  }
-  switch (sortMode) {
-    case "alpha":
-      return pool.sort((a, b) =>
-        a.title.localeCompare(b.title, undefined, { sensitivity: "base" })
-      );
-    case "due":
-      return pool.sort((a, b) => {
-        if (a.dueDate && !b.dueDate) return -1;
-        if (!a.dueDate && b.dueDate) return 1;
-        if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
-        return a.order - b.order;
-      });
-    case "manual":
-      return pool.sort((a, b) => a.order - b.order);
-    case "smart":
-    default:
-      return pool.sort((a, b) => {
-        if (a.priority !== b.priority) return a.priority - b.priority;
-        if (a.dueDate && !b.dueDate) return -1;
-        if (!a.dueDate && b.dueDate) return 1;
-        if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
-        return a.order - b.order;
-      });
-  }
-}
-
-function matchQuery(t: Task, q: string): boolean {
-  if (!q) return true;
-  const s = q.toLowerCase();
-  return t.title.toLowerCase().includes(s) || t.description.toLowerCase().includes(s);
-}
-
 function groupForView(view: View, tasks: Task[]): DayGroup[] {
   if (view.kind === "today" || view.kind === "upcoming") {
     const map = new Map<string, Task[]>();
@@ -253,10 +193,9 @@ function groupForView(view: View, tasks: Task[]): DayGroup[] {
 }
 
 function prettyDay(ymd: string): string {
-  const today = new Date();
   const target = new Date(ymd + "T00:00:00");
-  const todayStr = today.toISOString().slice(0, 10);
-  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  const todayStr = todayYMD();
+  const tomorrow = addDays(todayStr, 1);
   if (ymd === todayStr) return "Today";
   if (ymd === tomorrow) return "Tomorrow";
   return target.toLocaleDateString(undefined, {

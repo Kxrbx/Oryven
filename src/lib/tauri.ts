@@ -1,7 +1,7 @@
 // Tiny wrapper around Tauri's IPC for state persistence.
 // Falls back to localStorage when running outside Tauri (development convenience).
 
-import { PersistedAppState } from "@/types";
+import { PersistedAppState, VIEW_MODES } from "@/types";
 
 interface PersistedState {
   schema_version: number;
@@ -15,13 +15,30 @@ function hasTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }
 
+/**
+ * Coerce unknown `viewMode` values to `undefined` so the store's
+ * `?? DEFAULT_VIEW_MODE` fallback kicks in. This handles state files
+ * written by earlier builds (e.g. 0.5.0 with the now-removed
+ * `"timeline"` / `"mindmap"` values) — otherwise the active button
+ * in the switcher would silently fail to highlight and the dispatcher
+ * would fall through to the default branch.
+ */
+function normalizePersistedState(raw: unknown): PersistedAppState | null {
+  if (!raw || typeof raw !== "object") return null;
+  const state = raw as PersistedAppState;
+  if (state.viewMode !== undefined && !VIEW_MODES.includes(state.viewMode)) {
+    state.viewMode = undefined;
+  }
+  return state;
+}
+
 export async function loadState(): Promise<PersistedAppState | null> {
   if (hasTauri()) {
     try {
       const { invoke } = await import("@tauri-apps/api/core");
       const persisted = (await invoke("load_state")) as PersistedState;
       if (persisted.json) {
-        return JSON.parse(persisted.json) as PersistedAppState;
+        return normalizePersistedState(JSON.parse(persisted.json));
       }
       return null;
     } catch (e) {
@@ -31,7 +48,7 @@ export async function loadState(): Promise<PersistedAppState | null> {
   try {
     const raw = localStorage.getItem(LS_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as PersistedAppState;
+    return normalizePersistedState(JSON.parse(raw));
   } catch {
     return null;
   }
@@ -49,7 +66,8 @@ export async function saveState(state: PersistedAppState): Promise<string | null
       });
       return null;
     } catch (e) {
-      console.error("[tauri] save_state failed, falling back", e);
+      console.error("[tauri] save_state failed", e);
+      return "save failed";
     }
   }
   try {

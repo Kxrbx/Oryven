@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Plus, CalendarDays, CornerDownLeft, Flag } from "lucide-react";
 import { useStore } from "@/store";
 import { parseQuickAdd } from "@/utils/parse";
+import { addDays, todayYMD } from "@/utils/dates";
 import { ColorDot } from "./ColorDot";
 import { ColorKey, Priority } from "@/types";
 import "./QuickAdd.css";
@@ -133,9 +134,9 @@ export function QuickAdd() {
 }
 
 function prettyDate(ymd: string): string {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayYMD();
   if (ymd === today) return "Today";
-  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  const tomorrow = addDays(today, 1);
   if (ymd === tomorrow) return "Tomorrow";
   return new Date(ymd + "T00:00:00").toLocaleDateString(undefined, {
     weekday: "short",

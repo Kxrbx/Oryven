@@ -90,6 +90,21 @@ export const DEFAULT_SETTINGS: AppSettings = {
 // 1 = highest visual urgency, 4 = none
 export type Priority = 1 | 2 | 3 | 4;
 
+// Display layout for the current filter. Orthogonal to `View`, which is
+// the filter (inbox/today/...). A user can be in the "Today" filter
+// while seeing it as a Kanban board, or a calendar, etc. Persisted so
+// each user gets the layout they prefer on next launch.
+export type ViewMode = "list" | "kanban" | "calendar" | "table";
+
+export const VIEW_MODES: ViewMode[] = [
+  "list",
+  "kanban",
+  "calendar",
+  "table",
+];
+
+export const DEFAULT_VIEW_MODE: ViewMode = "list";
+
 export interface Task {
   id: ID;
   title: string;
@@ -103,8 +118,11 @@ export interface Task {
   subtasks: SubTask[];
   comments?: Comment[];
   recurrence: RecurrenceRule | null;
+  // Stable id shared by all future instances in the same repeating series.
+  // Optional for compatibility with state files written before this field.
+  recurrenceId?: ID | null;
   // For an instance spawned by completing a recurring task: id of the spawner.
-  // Used to prevent duplicate next-occurrences on repeat completion toggles.
+  // Kept for lineage and to migrate older chains into recurrenceId.
   parentRecurrenceId: ID | null;
   order: number;
   createdAt: ISO;
@@ -128,11 +146,14 @@ export type ModalKind =
   | "settings";
 
 // What we save/load to disk. UI-only modal state is intentionally excluded.
+// `viewMode` is optional for backward compatibility with state written
+// before the multi-view feature shipped.
 export interface PersistedAppState {
   projects: Project[];
   labels: Label[];
   tasks: Task[];
   view: View;
+  viewMode?: ViewMode;
   theme: "dark" | "light";
   sidebarCollapsed: boolean;
   selectedTaskId: ID | null;

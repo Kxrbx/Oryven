@@ -148,7 +148,10 @@ export function groupByDay(
 export function parseStrictYMD(s: string): YMD | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
   try {
-    return toYMD(parseISO(s));
+    const parsed = parseISO(s);
+    if (Number.isNaN(parsed.getTime())) return null;
+    const ymd = toYMD(parsed);
+    return ymd === s ? ymd : null;
   } catch {
     return null;
   }

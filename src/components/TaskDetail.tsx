@@ -44,6 +44,7 @@ export function TaskDetail({ onClose }: TaskDetailProps) {
   const update = useStore((s) => s.updateTask);
   const toggle = useStore((s) => s.toggleTask);
   const remove = useStore((s) => s.deleteTask);
+  const confirmBeforeDelete = useStore((s) => s.settings.confirmBeforeDelete);
   const addSub = useStore((s) => s.addSubTask);
   const toggleSub = useStore((s) => s.toggleSubTask);
   const updateSub = useStore((s) => s.updateSubTask);
@@ -406,6 +407,12 @@ export function TaskDetail({ onClose }: TaskDetailProps) {
             <button
               className="detail-del"
               onClick={() => {
+                if (
+                  confirmBeforeDelete &&
+                  !window.confirm(`Delete "${task.title}"?`)
+                ) {
+                  return;
+                }
                 remove(task.id);
                 onClose();
               }}
@@ -639,7 +646,7 @@ function RecurrenceRow({
             { label: "Never", v: null },
             { label: "Every day", v: { kind: "daily" } as RecurrenceRule },
             { label: "Every week", v: { kind: "weekly", weekdays: [] } as RecurrenceRule },
-            { label: "Every month", v: { kind: "monthly", dayOfMonth: 1 } as RecurrenceRule },
+            { label: "Every month", v: { kind: "monthly" } as RecurrenceRule },
             { label: "Every year", v: { kind: "yearly" } as RecurrenceRule },
           ].map((opt) => (
             <button

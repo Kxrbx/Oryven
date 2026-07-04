@@ -9,6 +9,8 @@ import { useStore } from "@/store";
 import { View, Task, SortMode } from "@/types";
 import { cn } from "@/utils/cn";
 import { modKey } from "@/utils/keyboard";
+import { addDays, todayYMD } from "@/utils/dates";
+import { ViewModeSwitcher } from "./ViewModeSwitcher";
 import "./Header.css";
 
 interface HeaderProps {
@@ -49,6 +51,7 @@ export function Header(_: HeaderProps) {
       </div>
 
       <div className="header-right">
+        <ViewModeSwitcher />
         <button
           className="icon-btn"
           onClick={() => {
@@ -203,8 +206,8 @@ function describeView(
   projects: { id: string; name: string }[],
   labels: { id: string; name: string }[]
 ): HeaderInfo {
-  const todayISO = new Date().toISOString().slice(0, 10);
-  const in7DaysISO = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+  const todayISO = todayYMD();
+  const in7DaysISO = addDays(todayISO, 7);
   const open = (t: Task) => !t.completed;
 
   switch (view.kind) {

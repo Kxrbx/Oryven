@@ -9,10 +9,17 @@ import {
   ID,
   ModalKind,
   AppSettings,
+  ViewMode,
   DEFAULT_SETTINGS,
+  DEFAULT_VIEW_MODE,
 } from "@/types";
 import { newId } from "@/utils/id";
-import { nextOccurrence } from "@/utils/recurrence";
+import { todayYMD } from "@/utils/dates";
+import {
+  nextOccurrence,
+  normalizeRecurrenceRule,
+  recurrenceSeriesId,
+} from "@/utils/recurrence";
 
 interface Actions {
   // ---------- Tasks ----------
@@ -56,6 +63,7 @@ interface Actions {
 
   // ---------- UI ----------
   setView: (view: View) => void;
+  setViewMode: (mode: ViewMode) => void;
   setTheme: (theme: AppState["theme"]) => void;
   toggleSidebar: () => void;
   selectTask: (id: ID | null) => void;
@@ -78,12 +86,86 @@ function nextOrder(prev: { order: number }[]): number {
   return Math.max(...prev.map((p) => p.order)) + 1000;
 }
 
+function normalizeTaskPatch(task: Task, patch: Partial<Task>): Partial<Task> {
+  // Re-normalize the recurrence rule when *either* recurrence or dueDate
+  // is being patched. Monthly/weekly rules can depend on the current
+  // dueDate (e.g. day-of-month fallbacks), and leaving the rule stale
+  // after a date change would silently break the pattern's correct
+  // rollover.
+  const recurrenceProvided = "recurrence" in patch;
+  const dueDateProvided = "dueDate" in patch;
+  if (!recurrenceProvided && !dueDateProvided) return patch;
+
+  const dueDate = patch.dueDate !== undefined ? patch.dueDate : task.dueDate;
+  const rawRecurrence = recurrenceProvided
+    ? patch.recurrence
+    : task.recurrence;
+  const recurrence = normalizeRecurrenceRule(rawRecurrence, dueDate);
+
+  return {
+    ...patch,
+    recurrence,
+    recurrenceId: recurrence
+      ? patch.recurrenceId ?? recurrenceSeriesId(task)
+      : null,
+  };
+}
+
+/**
+ * Two tasks are part of the same recurring line when they share the same
+ * `recurrenceId` chain. The series id is the original task's id, optionally
+ * held by either the explicit `recurrenceId` of any descendant or, for
+ * older pre-`recurrenceId` state, the `parentRecurrenceId` lineage.
+ *
+ * `recurrenceSeriesId` evaluates to the same value for every member of a
+ * chain, regardless of where in the lineage the task sits, so a single
+ * equality check is sufficient.
+ */
+function isSameRecurringLine(
+  candidate: Task,
+  active: Task,
+  seriesId: ID
+): boolean {
+  return recurrenceSeriesId(candidate) === seriesId;
+}
+
+/**
+ * Returns true when `child` looks like the auto-spawned instance that
+ * `toggleTask` produced immediately after completing `parent` — same
+ * title, description, priority, project, labels, no user-added
+ * subtasks/comments, and a `dueDate` that still matches the natural
+ * recurrence step from `parent`. We use this to decide whether
+ * un-ticking `parent` is allowed to clean the child up. A child the
+ * user has since edited stays put, because removing it would silently
+ * discard their work (a date customisation in particular should
+ * survive an un-tick).
+ */
+function isPristineAutoSpawn(child: Task, parent: Task): boolean {
+  if (child.title !== parent.title) return false;
+  if (child.description !== parent.description) return false;
+  if (child.priority !== parent.priority) return false;
+  if ((child.projectId ?? null) !== (parent.projectId ?? null)) return false;
+  if (child.subtasks.length > 0) return false;
+  if ((child.comments?.length ?? 0) > 0) return false;
+  const a = child.labelIds.slice().sort().join("\u0001");
+  const b = parent.labelIds.slice().sort().join("\u0001");
+  if (a !== b) return false;
+  // A user who rescheduled the auto-spawned child has effectively
+  // claimed it; treat that as an edit and preserve it on un-tick.
+  const naturalNext = nextOccurrence(parent, {
+    baseDate: parent.dueDate ?? undefined,
+  });
+  if (naturalNext == null) return child.dueDate == null;
+  return child.dueDate === naturalNext;
+}
+
 export const useStore = create<Store>()(
   subscribeWithSelector((set, get) => ({
     projects: [],
     labels: [],
     tasks: [],
     view: { kind: "inbox" },
+    viewMode: DEFAULT_VIEW_MODE,
     theme: "dark",
     sidebarCollapsed: false,
     selectedTaskId: null,
@@ -94,8 +176,13 @@ export const useStore = create<Store>()(
     // --------- Tasks ---------
     createTask: (input) => {
       const tasks = get().tasks;
+      const id = newId("t");
+      const recurrence = normalizeRecurrenceRule(
+        input.recurrence,
+        input.dueDate ?? null
+      );
       const task: Task = {
-        id: newId("t"),
+        id,
         title: input.title,
         description: input.description ?? "",
         completed: false,
@@ -105,7 +192,8 @@ export const useStore = create<Store>()(
         projectId: input.projectId ?? null,
         labelIds: input.labelIds ?? [],
         subtasks: input.subtasks ?? [],
-        recurrence: input.recurrence ?? null,
+        recurrence,
+        recurrenceId: input.recurrenceId ?? (recurrence ? id : null),
         parentRecurrenceId: input.parentRecurrenceId ?? null,
         order: input.order ?? nextOrder(tasks),
         createdAt: new Date().toISOString(),
@@ -116,50 +204,98 @@ export const useStore = create<Store>()(
 
     updateTask: (id, patch) =>
       set((s) => ({
-        tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)),
+        tasks: s.tasks.map((t) =>
+          t.id === id ? { ...t, ...normalizeTaskPatch(t, patch) } : t
+        ),
       })),
 
     toggleTask: (id) =>
       set((s) => {
-        const tasks = s.tasks.map((t) => {
+        const now = new Date().toISOString();
+        let tasks = s.tasks.map((t) => {
           if (t.id !== id) return t;
           const completing = !t.completed;
           return {
             ...t,
             completed: completing,
-            completedAt: completing ? new Date().toISOString() : null,
+            completedAt: completing ? now : null,
           };
         });
-        // Recurrence rule: spawn the next occurrence, but only once per parent,
-        // even if the user toggles the same task on/off repeatedly.
+
         const toggled = tasks.find((t) => t.id === id);
-        if (
-          toggled &&
-          toggled.completed &&
-          toggled.recurrence &&
-          toggled.dueDate
-        ) {
-          const hasOpenChild = tasks.some(
-            (t2) =>
-              t2.id !== toggled.id &&
-              t2.parentRecurrenceId === toggled.id &&
-              !t2.completed
+        if (!toggled) return { tasks };
+
+        // Un-ticking a recurring task: if completing it auto-spawned an
+        // immediate next instance, drop that instance now so the user's
+        // reversion of the tick doesn't leave a phantom future task
+        // dangling in the inbox. We only remove the *direct* child that
+        // looks pristine (so deep edits the user made are preserved) and
+        // never re-touch anything the user has independently completed.
+        if (!toggled.completed && toggled.recurrence) {
+          tasks = tasks.filter((t) => {
+            if (t.id === toggled.id) return true;
+            if (t.parentRecurrenceId !== toggled.id) return true;
+            if (t.completed) return true;
+            return !isPristineAutoSpawn(t, toggled);
+          });
+        }
+
+        // Ticking a recurring task: spawn the next occurrence. We anchor
+        // to today when the task has no due date so the pattern keeps
+        // cycling instead of silently dying the moment the user drops
+        // the anchor date.
+        if (toggled.completed && toggled.recurrence) {
+          const baseDate = toggled.dueDate ?? todayYMD();
+          const recurrence = normalizeRecurrenceRule(
+            toggled.recurrence,
+            baseDate
           );
-          if (!hasOpenChild) {
-            const next = nextOccurrence(toggled);
-            if (next) {
-              const fresh: Task = {
-                ...toggled,
-                id: newId("t"),
+          if (!recurrence) return { tasks };
+
+          const seriesId = recurrenceSeriesId(toggled);
+          const normalizedToggled: Task = {
+            ...toggled,
+            recurrence,
+            recurrenceId: seriesId,
+          };
+
+          tasks = tasks.map((t) => (t.id === id ? normalizedToggled : t));
+
+          const hasOpenContinuation = tasks.some(
+            (candidate) =>
+              candidate.id !== normalizedToggled.id &&
+              !candidate.completed &&
+              isSameRecurringLine(candidate, normalizedToggled, seriesId)
+          );
+          if (hasOpenContinuation) {
+            return { tasks };
+          }
+
+          const next = nextOccurrence(normalizedToggled, { baseDate });
+          if (next) {
+            const fresh: Task = {
+              id: newId("t"),
+              title: normalizedToggled.title,
+              description: normalizedToggled.description,
+              completed: false,
+              completedAt: null,
+              dueDate: next,
+              priority: normalizedToggled.priority,
+              projectId: normalizedToggled.projectId,
+              labelIds: [...normalizedToggled.labelIds],
+              subtasks: normalizedToggled.subtasks.map((subtask) => ({
+                ...subtask,
+                id: newId("s"),
                 completed: false,
-                completedAt: null,
-                dueDate: next,
-                parentRecurrenceId: toggled.id,
-                order: nextOrder(tasks) + 1,
-                createdAt: new Date().toISOString(),
-              };
-              return { tasks: [...tasks, fresh] };
-            }
+              })),
+              comments: [],
+              recurrence,
+              recurrenceId: seriesId,
+              parentRecurrenceId: normalizedToggled.id,
+              order: nextOrder(tasks),
+              createdAt: now,
+            };
+            return { tasks: [...tasks, fresh] };
           }
         }
         return { tasks };
@@ -423,6 +559,10 @@ export const useStore = create<Store>()(
 
     // --------- UI ---------
     setView: (view) => set({ view, selectedTaskId: null, detailOpen: false }),
+    // Switching view mode does NOT close the detail panel — users
+    // often want to keep their context while re-rendering the same
+    // filter in a different layout. Only `setView` clears it.
+    setViewMode: (viewMode) => set({ viewMode }),
     setTheme: (theme) => set({ theme }),
     toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
     selectTask: (id) => set({ selectedTaskId: id }),
@@ -444,6 +584,7 @@ export const useStore = create<Store>()(
         labels: [],
         tasks: [],
         view: { kind: "inbox" },
+        viewMode: DEFAULT_VIEW_MODE,
         theme: "dark",
         sidebarCollapsed: false,
         selectedTaskId: null,
@@ -453,4 +594,3 @@ export const useStore = create<Store>()(
       })),
   }))
 );
-

@@ -447,6 +447,28 @@
   border-color: var(--text-subtle);
 }
 
+/* Eyebrow divider that separates a logical subgroup inside the keys
+ * list (e.g. "View layouts" between nav chords and view-mode chords).
+ * Inherits the same hairline + uppercase-label treatment used by the
+ * Activity / Comments / Sub-tasks rail in TaskDetail so the two
+ * surfaces speak the same visual vocabulary. Symmetric 8px vertical
+ * padding (plus 1px borders on each side) keeps the eyebrow label
+ * visually centered between the two shortcut groups. */
+.settings-keys-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  background: var(--surface);
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+}
+
 /* ─── About ──────────────────────────────────────────────────────── */
 
 .settings-about {
@@ -459,15 +481,14 @@
   border-radius: 10px;
 }
 .settings-about-mark {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background:
-    radial-gradient(circle at 30% 30%, var(--surface-active), transparent 70%);
-  border: 1px solid var(--hairline);
+  background: transparent;
+  border: none;
 }
 .settings-about-body {
   display: flex;

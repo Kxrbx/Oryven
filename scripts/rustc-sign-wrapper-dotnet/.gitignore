@@ -1,0 +1,9 @@
+# .NET build outputs for the rustc-sign-wrapper helper. This subproject
+# ships as raw source (Program.cs + RustcSignWrapper.csproj) only — the
+# compiled wrapper.exe is produced on demand by `dotnet publish` and the
+# Rust build pipeline invokes the wrapper directly, so committing the
+# interim build artifacts would just bloat the working tree.
+/bin/
+/obj/
+/*.user
+/.vs/

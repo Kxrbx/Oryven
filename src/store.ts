@@ -10,6 +10,7 @@ import {
   ModalKind,
   AppSettings,
   ViewMode,
+  YMD,
   DEFAULT_SETTINGS,
   DEFAULT_VIEW_MODE,
 } from "@/types";
@@ -152,9 +153,34 @@ function isPristineAutoSpawn(child: Task, parent: Task): boolean {
   if (a !== b) return false;
   // A user who rescheduled the auto-spawned child has effectively
   // claimed it; treat that as an edit and preserve it on un-tick.
-  const naturalNext = nextOccurrence(parent, {
-    baseDate: parent.dueDate ?? undefined,
-  });
+  //
+  // For parents with a fixed `dueDate`, the recurrence has a stable
+  // anchor: `nextOccurrence(parent, { baseDate: parent.dueDate })`
+  // returns the same date at every call, so the strict equality
+  // below is a sound time-invariant check.
+  //
+  // For parents with no `dueDate` (a "Every day" reminder created
+  // without a specific date), the natural-next was computed at
+  // SPAWN time against today's clock. If we re-anchor `naturalNext`
+  // to today's clock at un-tick time, a multi-day-delayed un-tick
+  // would advance it past `spawn.dueDate` and the strict equality
+  // would fail — leaving a stale auto-spawn behind in the inbox.
+  // Anchor the no-dueDate branch to the day the child was created
+  // instead so the comparison lands back at the spawn's natural
+  // next, regardless of how many days have passed.
+  let naturalNext: YMD | null;
+  if (parent.dueDate != null) {
+    naturalNext = nextOccurrence(parent, { baseDate: parent.dueDate });
+  } else {
+    // Defensive fail-closed for malformed `createdAt`: if the child was
+    // somehow stamped without a valid YMD date prefix (legacy state.json,
+    // hand-edited state, etc.) we'd otherwise feed nonsense into
+    // `nextOccurrence`'s baseDate. Skip the sweep rather than risk a
+    // wrong comparison.
+    const spawnDate: YMD = child.createdAt.slice(0, 10);
+    if (spawnDate.length !== 10) return false;
+    naturalNext = nextOccurrence(parent, { baseDate: spawnDate });
+  }
   if (naturalNext == null) return child.dueDate == null;
   return child.dueDate === naturalNext;
 }
